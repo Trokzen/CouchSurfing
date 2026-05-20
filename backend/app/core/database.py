@@ -1,5 +1,6 @@
 """Database connection and session management."""
 
+from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
@@ -33,7 +34,7 @@ engine = create_async_engine(
 )
 
 # Create async session factory
-async_session_factory = async_sessionmaker(
+AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False,
@@ -44,7 +45,7 @@ async_session_factory = async_sessionmaker(
 # Scoped session for request-level isolation
 # Uses asyncio.get_running_loop() to ensure session is tied to current async task
 db_session = async_scoped_session(
-    session_factory=async_session_factory,
+    session_factory=AsyncSessionLocal,
     scopefunc=asyncio.current_task,
 )
 
