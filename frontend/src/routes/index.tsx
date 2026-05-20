@@ -2,17 +2,17 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicRoute } from './PublicRoute';
 
-// Lazy load pages for better performance
-const AppLayout = () => import('../components/AppLayout').then(m => m.default);
-const LoginPage = () => import('../pages/Auth/LoginPage').then(m => m.default);
-const RegisterPage = () => import('../pages/Auth/RegisterPage').then(m => m.default);
-const ListingsFeedPage = () => import('../pages/Listings/ListingsFeedPage').then(m => m.default);
-const ListingDetailPage = () => import('../pages/Listings/ListingDetailPage').then(m => m.default);
-const MyListingsPage = () => import('../pages/Listings/MyListingsPage').then(m => m.default);
-const CreateListingPage = () => import('../pages/Listings/CreateListingPage').then(m => m.default);
-const EditListingPage = () => import('../pages/Listings/EditListingPage').then(m => m.default);
-const MyBookingsPage = () => import('../pages/Bookings/MyBookingsPage').then(m => m.default);
-const BookingDetailPage = () => import('../pages/Bookings/BookingDetailPage').then(m => m.default);
+// Import pages directly (not lazy-loaded for simplicity)
+import AppLayout from '../components/AppLayout';
+import LoginPage from '../pages/Auth/LoginPage';
+import RegisterPage from '../pages/Auth/RegisterPage';
+import ListingsFeedPage from '../pages/Listings/ListingsFeedPage';
+import ListingDetailPage from '../pages/Listings/ListingDetailPage';
+import MyListingsPage from '../pages/Listings/MyListingsPage';
+import CreateListingPage from '../pages/Listings/CreateListingPage';
+import EditListingPage from '../pages/Listings/EditListingPage';
+import MyBookingsPage from '../pages/Bookings/MyBookingsPage';
+import BookingDetailPage from '../pages/Bookings/BookingDetailPage';
 
 export const router = createBrowserRouter([
   {
