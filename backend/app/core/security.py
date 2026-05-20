@@ -5,11 +5,15 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.database import get_db
 from app.schemas.auth import TokenPayload, UserRole
+from app.models import User
+from app.crud.user import UserCRUD
 
 
 # ==================== Password Hashing ====================
@@ -170,6 +174,29 @@ async def get_current_user_id(
     Возвращает integer ID из токена.
     """
     return int(token_payload.sub)
+
+
+async def get_current_user(
+    db: AsyncSession = Depends(get_db),
+    token_payload: TokenPayload = get_current_user_token
+) -> User:
+    """
+    Dependency для получения объекта текущего пользователя из БД
+    
+    Возвращает полный объект User для использования в сервисах.
+    """
+    user_id = int(token_payload.sub)
+    crud = UserCRUD(db)
+    user = await crud.get_by_id(user_id)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return user
 
 
 def require_role(*allowed_roles: UserRole):
