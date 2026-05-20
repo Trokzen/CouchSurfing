@@ -1,0 +1,87 @@
+Ты — Senior Full-Stack Developer. Твоя задача — разработать архитектуру и код валидационного прототипа информационной системы «CouchSurfing» (обмен жильем).
+
+# 1. КОНТЕКСТ ПРОЕКТА
+Система предназначена для P2P обмена жильем на некоммерческой основе. Ключевые особенности:
+- Доверительная среда: акцент на верификации профилей и репутации.
+- Сложный жизненный цикл заявки: статусы меняются последовательно (State Machine).
+- Ролевая модель: Гость, Хост, Модератор.
+- Отсутствие платежей: фокус на бронировании и коммуникации.
+
+# 2. ТЕХНОЛОГИЧЕСКИЙ СТЕК (СТРОГОЕ СОБЛЮДЕНИЕ)
+Backend:
+- Язык: Python 3.10+
+- Фреймворк: FastAPI (асинхронный)
+- БД: PostgreSQL + AsyncPG (полностью async драйвер)
+- ORM: SQLAlchemy 2.0 (async mode)
+- Миграции: Alembic
+- Валидация: Pydantic v2
+- Auth: JWT (python-jose), Хеширование (passlib[bcrypt])
+- Логирование: structlog
+- Сервер: Uvicorn
+
+Frontend:
+- Фреймворк: React 18/19 + TypeScript
+- Сборка: Vite
+- UI Kit: Mantine (v7) + Tailwind CSS
+- Роутинг: React Router DOM
+- HTTP Client: Axios
+- Иконки: Tabler Icons
+
+# 3. БИЗНЕС-ЛОГИКА И АРХИТЕКТУРА
+Архитектура: Разделенный Monolith (Modular Monolith). Backend предоставляет REST API, Frontend — SPA.
+
+## 3.1. Структура Базы Данных (ER-модель)
+Реализуй следующие сущности (согласно Приложению В курсовой):
+1. User: id, email, password_hash, full_name, role (enum: guest, host, moderator), verification_status, created_at.
+2. Listing: id, host_id (FK), title, description, city, address, capacity, is_active.
+3. Booking: id, guest_id (FK), listing_id (FK), start_date, end_date, status, created_at, updated_at.
+   - Статусы (Enum): 'new', 'pending', 'confirmed', 'rejected', 'cancelled', 'completed'.
+4. Review: id, booking_id (FK), author_id, target_id, rating (1-5), comment.
+5. Message: id, sender_id, receiver_id, booking_id (optional), content, is_read.
+
+Важно: Используй Alembic для создания миграций. Настрой связи (Relationships) и индексы (например, для поиска по city и датам).
+
+## 3.2. Ключевые сценарии (Use Cases)
+Реализуй следующие функциональные блоки:
+
+А. Аутентификация и Авторизация (Auth Module)
+- Регистрация (с хешированием пароля).
+- Логин (возврат Access/Refresh JWT токенов).
+- Middleware для проверки токена и роли пользователя (Depends).
+
+Б. Управление Жильем (Listing Module)
+- CRUD для Host (создание, редактирование).
+- Поиск для Guest: фильтрация по городу, датам (пересечение интервалов), вместимости.
+
+В. Бронирование (Booking Module) — КРИТИЧНО
+- Логика смены статусов (State Machine):
+  1. Гость создает -> статус 'new'.
+  2. Система отправляет запрос Хосту -> статус 'pending'.
+  3. Хост принимает -> статус 'confirmed' (проверка доступности дат!).
+  4. Хост отклоняет -> статус 'rejected'.
+  5. Гость отменяет -> статус 'cancelled'.
+  6. После даты выезда -> статус 'completed'.
+- Валидация: нельзя забронировать занятые даты (проверка пересечения интервалов в БД).
+
+Г. Отзывы (Review Module)
+- Отзыв можно оставить ТОЛЬКО после статуса 'completed'.
+- Рейтинг обновляется у пользователя.
+
+# 4. ТРЕБОВАНИЯ К КОДУ
+1. Чистая архитектура: Разделяй код на routers, models, schemas (Pydantic), services (бизнес-логика), crud (доступ к БД).
+2. Типизация: Строгая типизация TypeScript на фронтенде и Python на бэкенде.
+3. Обработка ошибок: Глобальный Exception Handler в FastAPI (возврат JSON с кодом и сообщением).
+4. Комментарии: Краткие пояснения сложной логики (особенно проверки дат и статусов).
+5. Безопасность: CORS настроен только для локального фронтенда. Пароли никогда не возвращать в ответах API.
+
+# 5. ПЛАН РЕАЛИЗАЦИИ (ШАГ ЗА ШАГОМ)
+Не пиши весь код сразу. Действуй последовательно:
+ШАГ 1: Настройка Backend (main.py, config.py, database.py, models.py).
+ШАГ 2: Реализация Alembic миграций и инициализация БД.
+ШАГ 3: Auth (схемы, router, service).
+ШАГ 4: Listings и Search (с фильтрацией дат).
+ШАГ 5: Bookings (State Machine logic).
+ШАГ 6: Frontend (настройка Vite, Mantine, Axios instance).
+ШАГ 7: Frontend Pages (Login, Dashboard, Booking Flow).
+
+Начни с ШАГА 1 и ШАГА 2. Жди подтверждения, чтобы перейти к следующему.
