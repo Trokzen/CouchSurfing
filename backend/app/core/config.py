@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/couchsurfing"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:123@localhost:5432/couchsurfing"
 
     # JWT Settings
     SECRET_KEY: str = "your-secret-key-change-in-production"
