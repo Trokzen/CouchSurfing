@@ -4,7 +4,7 @@ Security utilities - JWT, password hashing
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt as _bcrypt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,17 +18,21 @@ from app.crud.user import UserCRUD
 
 # ==================== Password Hashing ====================
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Проверка пароля against хеша"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return _bcrypt.checkpw(
+        plain_password.encode('utf-8'), 
+        hashed_password.encode('utf-8')
+    )
 
 
 def get_password_hash(password: str) -> str:
     """Хеширование пароля"""
-    return pwd_context.hash(password)
+    return _bcrypt.hashpw(
+        password.encode('utf-8'), 
+        _bcrypt.gensalt()
+    ).decode('utf-8')
 
 
 # ==================== JWT Token Operations ====================

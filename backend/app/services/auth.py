@@ -5,15 +5,11 @@
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt as _bcrypt
 from fastapi import HTTPException, status
 
 from app.core.config import settings
 from app.schemas.auth import TokenPayload, UserRole
-
-
-# Настройка контекста для хеширования паролей
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthService:
@@ -31,7 +27,10 @@ class AuthService:
         Returns:
             True если пароль верный
         """
-        return pwd_context.verify(plain_password, hashed_password)
+        return _bcrypt.checkpw(
+            plain_password.encode('utf-8'), 
+            hashed_password.encode('utf-8')
+        )
 
     @staticmethod
     def get_password_hash(password: str) -> str:
@@ -44,7 +43,10 @@ class AuthService:
         Returns:
             Хешированный пароль
         """
-        return pwd_context.hash(password)
+        return _bcrypt.hashpw(
+            password.encode('utf-8'), 
+            _bcrypt.gensalt()
+        ).decode('utf-8')
 
     @staticmethod
     def create_access_token(
