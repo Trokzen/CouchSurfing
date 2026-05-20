@@ -1,0 +1,178 @@
+"""Main FastAPI application entry point."""
+
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exception_handlers import request_validation_exception_handler
+from pydantic import ValidationError
+
+from app.core.config import get_settings
+from app.core.logging import setup_logging, get_logger
+from app.core.database import init_db, close_db
+from app.core.exceptions import AppException
+
+# Import routers (will be created in next steps)
+# from app.routers import auth, listings, bookings, reviews, messages
+
+settings = get_settings()
+logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """
+    Application lifespan manager.
+    
+    Handles startup and shutdown events:
+    - Setup logging
+    - Initialize database connections
+    - Cleanup on shutdown
+    """
+    # Startup
+    setup_logging()
+    logger.info("Starting up CouchSurfing API")
+    
+    # Initialize database (in production, use Alembic migrations instead)
+    if settings.DEBUG:
+        await init_db()
+        logger.info("Database initialized (DEBUG mode)")
+    
+    yield
+    
+    # Shutdown
+    await close_db()
+    logger.info("Shutting down CouchSurfing API")
+
+
+def create_app() -> FastAPI:
+    """
+    Application factory for creating FastAPI instance.
+    
+    Returns:
+        Configured FastAPI application
+    """
+    app = FastAPI(
+        title=settings.APP_NAME,
+        description="P2P accommodation exchange platform API",
+        version="1.0.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        lifespan=lifespan,
+    )
+
+    # Configure CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[settings.FRONTEND_URL],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Register exception handlers
+    register_exception_handlers(app)
+
+    # Include routers
+    # app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+    # app.include_router(listings.router, prefix="/api/v1/listings", tags=["Listings"])
+    # app.include_router(bookings.router, prefix="/api/v1/bookings", tags=["Bookings"])
+    # app.include_router(reviews.router, prefix="/api/v1/reviews", tags=["Reviews"])
+    # app.include_router(messages.router, prefix="/api/v1/messages", tags=["Messages"])
+
+    # Health check endpoint
+    @app.get("/health", tags=["Health"])
+    async def health_check():
+        """Check if the API is running."""
+        return {"status": "healthy", "version": "1.0.0"}
+
+    logger.info("FastAPI application created successfully")
+    return app
+
+
+def register_exception_handlers(app: FastAPI) -> None:
+    """
+    Register global exception handlers.
+    
+    Provides consistent error response format across the application.
+    """
+
+    @app.exception_handler(AppException)
+    async def app_exception_handler(request: Request, exc: AppException):
+        """Handle custom application exceptions."""
+        logger.warning(
+            "Application exception",
+            path=request.url.path,
+            method=request.method,
+            exception=str(exc),
+            status_code=exc.status_code,
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": {
+                    "message": exc.message,
+                    "detail": exc.detail,
+                    "type": type(exc).__name__,
+                }
+            },
+        )
+
+    @app.exception_handler(ValidationError)
+    async def validation_exception_handler(request: Request, exc: ValidationError):
+        """Handle Pydantic validation errors."""
+        logger.warning(
+            "Validation error",
+            path=request.url.path,
+            errors=exc.errors(),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "error": {
+                    "message": "Validation error",
+                    "detail": exc.errors(),
+                    "type": "ValidationError",
+                }
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def general_exception_handler(request: Request, exc: Exception):
+        """Handle unexpected exceptions."""
+        logger.error(
+            "Unexpected exception",
+            path=request.url.path,
+            method=request.method,
+            exception=str(exc),
+            exc_info=True,
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": {
+                    "message": "Internal server error",
+                    "detail": "An unexpected error occurred",
+                    "type": type(exc).__name__,
+                }
+            },
+        )
+
+
+# Create application instance
+app = create_app()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.DEBUG,
+        log_level="info",
+    )
