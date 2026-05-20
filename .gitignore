@@ -8,33 +8,44 @@ __pycache__/
 env/
 venv/
 .venv/
+.ENV
+.ENV.local
+.python-version
+.python_history
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.coverage.*
+
+# Dependencies
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
 .coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-*.pot
-*.pyc
-*.pyo
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
 
 # FastAPI/Backend
+*.log
+logs/
+*.sqlite
 *.db
-*.db-journal
+.env
+.env.local
+.env.*
+!frontend/node_modules/
+!backend/venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 
-# Environment variables
-.env
-.env.local
-.env.dev
-.env.prod
-*.env
+# Build
+dist/
+build/
+*.egg-info/
 ```

@@ -51,3 +51,43 @@ class ConflictException(AppException):
 
     def __init__(self, message: str = "Resource conflict"):
         super().__init__(message=message, status_code=409)
+
+
+# Специфичные исключения для Auth модуля
+
+class EmailAlreadyExistsError(ConflictException):
+    """Raised when trying to register with an existing email."""
+
+    def __init__(self, email: str):
+        super().__init__(message=f"Email '{email}' is already registered")
+
+
+class UserNotFoundError(NotFoundException):
+    """Raised when user is not found."""
+
+    def __init__(self, user_id: Optional[int] = None):
+        if user_id:
+            super().__init__(message=f"User with ID {user_id} not found")
+        else:
+            super().__init__(message="User not found")
+
+
+class InvalidCredentialsError(AuthenticationException):
+    """Raised when login credentials are invalid."""
+
+    def __init__(self):
+        super().__init__(message="Invalid email or password")
+
+
+class TokenExpiredError(AuthenticationException):
+    """Raised when JWT token has expired."""
+
+    def __init__(self):
+        super().__init__(message="Token has expired")
+
+
+class InvalidTokenError(AuthenticationException):
+    """Raised when JWT token is invalid."""
+
+    def __init__(self):
+        super().__init__(message="Invalid token")

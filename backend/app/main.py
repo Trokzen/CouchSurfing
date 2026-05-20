@@ -15,7 +15,7 @@ from app.core.database import init_db, close_db
 from app.core.exceptions import AppException
 
 # Import routers
-from app.api.auth_router import router as auth_router
+from app.routers.auth import router as auth_router
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -77,7 +77,8 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     # Include routers
-    app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
+    # Auth router already has /auth prefix internally, so we use /api/v1 as main prefix
+    app.include_router(auth_router, prefix="/api/v1", tags=["Authentication"])
     # Future routers:
     # app.include_router(listings.router, prefix="/api/v1/listings", tags=["Listings"])
     # app.include_router(bookings.router, prefix="/api/v1/bookings", tags=["Bookings"])
