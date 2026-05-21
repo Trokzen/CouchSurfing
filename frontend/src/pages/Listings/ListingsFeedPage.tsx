@@ -97,7 +97,7 @@ export default function ListingsFeedPage() {
             label="Min Capacity"
             placeholder="Guests"
             value={minCapacity}
-            onChange={(val) => setMinCapacity(val === null ? undefined : val)}
+            onChange={(val) => setMinCapacity(typeof val === 'number' ? val : undefined)}
             min={1}
             max={20}
           />

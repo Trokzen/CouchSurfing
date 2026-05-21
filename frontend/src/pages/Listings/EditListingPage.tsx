@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Title, 
-  Text, 
   Card, 
   Group, 
   Button, 
@@ -19,10 +18,6 @@ import { useForm } from '@mantine/form';
 import { showNotification } from '@mantine/notifications';
 import { listingApi } from '../../api/listings';
 import type { Listing, ListingUpdate } from '../../types';
-
-interface EditListingPageProps {
-  id: string;
-}
 
 export default function EditListingPage() {
   const navigate = useNavigate();

@@ -11,9 +11,7 @@ import {
   Stack,
   LoadingOverlay,
   Box,
-  SimpleGrid,
   Tabs,
-  Space,
   Modal,
   Textarea
 } from '@mantine/core';

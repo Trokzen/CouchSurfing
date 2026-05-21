@@ -124,9 +124,11 @@ export interface BookingBrief {
   id: number;
   listing_id: number;
   listing_title: string;
+  listing_city?: string;
   start_date: string;
   end_date: string;
   status: BookingStatus;
+  message?: string;
 }
 
 export interface BookingCreate {

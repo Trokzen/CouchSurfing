@@ -16,7 +16,7 @@ import {
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { bookingApi } from '../../api/bookings';
-import type { Booking, BookingStatus } from '../../types';
+import type { BookingWithDetails, BookingStatus } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 
 const statusColors: Record<BookingStatus, string> = {
@@ -41,7 +41,7 @@ export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [booking, setBooking] = useState<Booking | null>(null);
+  const [booking, setBooking] = useState<BookingWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -260,7 +260,7 @@ export default function BookingDetailPage() {
           <Timeline active={3} bulletSize={24} lineWidth={2}>
             <Timeline.Item
               title="Booking Created"
-              bulletColor={statusColors.new}
+              color={statusColors.new}
             >
               <Text size="sm" c="dimmed">
                 {new Date(booking.created_at).toLocaleString()}
@@ -273,7 +273,7 @@ export default function BookingDetailPage() {
             {booking.status !== 'new' && (
               <Timeline.Item
                 title={statusLabels.pending}
-                bulletColor={statusColors.pending}
+                color={statusColors.pending}
               >
                 <Text size="sm" c="dimmed">
                   Pending host review
@@ -284,7 +284,7 @@ export default function BookingDetailPage() {
             {booking.status === 'confirmed' && (
               <Timeline.Item
                 title={statusLabels.confirmed}
-                bulletColor={statusColors.confirmed}
+                color={statusColors.confirmed}
               >
                 <Text size="sm" c="dimmed">
                   Host confirmed the booking
@@ -295,7 +295,7 @@ export default function BookingDetailPage() {
             {booking.status === 'rejected' && (
               <Timeline.Item
                 title={statusLabels.rejected}
-                bulletColor={statusColors.rejected}
+                color={statusColors.rejected}
               >
                 <Text size="sm" c="dimmed">
                   Host rejected the booking
@@ -306,7 +306,7 @@ export default function BookingDetailPage() {
             {booking.status === 'cancelled' && (
               <Timeline.Item
                 title={statusLabels.cancelled}
-                bulletColor={statusColors.cancelled}
+                color={statusColors.cancelled}
               >
                 <Text size="sm" c="dimmed">
                   Booking was cancelled
@@ -318,7 +318,7 @@ export default function BookingDetailPage() {
               <>
                 <Timeline.Item
                   title={statusLabels.confirmed}
-                  bulletColor={statusColors.confirmed}
+                  color={statusColors.confirmed}
                 >
                   <Text size="sm" c="dimmed">
                     Host confirmed the booking
@@ -326,7 +326,7 @@ export default function BookingDetailPage() {
                 </Timeline.Item>
                 <Timeline.Item
                   title={statusLabels.completed}
-                  bulletColor={statusColors.completed}
+                  color={statusColors.completed}
                 >
                   <Text size="sm" c="dimmed">
                     Stay completed successfully

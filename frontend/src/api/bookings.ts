@@ -3,7 +3,7 @@ import type {
   Booking, 
   BookingCreate, 
   BookingBrief,
-  BookingStatusChange 
+  BookingWithDetails
 } from '../types';
 
 export const bookingApi = {
@@ -38,7 +38,7 @@ export const bookingApi = {
   /**
    * Get booking details by ID
    */
-  getBookingById: async (id: number): Promise<Booking> => {
+  getBookingById: async (id: number): Promise<BookingWithDetails> => {
     const response = await apiClient.get(`/api/v1/bookings/${id}`);
     return response.data;
   },

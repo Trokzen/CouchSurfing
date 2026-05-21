@@ -1,16 +1,11 @@
-import { ReactNode, useState } from 'react';
 import { AppShell, Burger, Group, NavLink, Avatar, Text, Box } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconHome, IconCalendar, IconBuildingStore, IconPlus, IconLogin, IconUserPlus, IconLogout } from '@tabler/icons-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { showNotification } from '@mantine/notifications';
 
-interface AppLayoutProps {
-  children: ReactNode;
-}
-
-export default function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayout() {
   const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
   const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
   const { user, logout, isAuthenticated } = useAuth();
@@ -117,7 +112,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </Box>
       </AppShell.Navbar>
 
-      <AppShell.Main>{children}</AppShell.Main>
+      <AppShell.Main><Outlet /></AppShell.Main>
     </AppShell>
   );
 }
