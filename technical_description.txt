@@ -1,0 +1,511 @@
+================================================================================
+ТЕХНИЧЕСКОЕ ОПИСАНИЕ ПРОТОТИПА (CouchSurfing P2P Platform)
+Раздел 3.2: Описание валидационного прототипа и ключевых модулей
+================================================================================
+
+1. АРХИТЕКТУРА И СТРУКТУРА
+================================================================================
+
+1.1 Организация папок проекта
+--------------------------------------------------------------------------------
+
+BACKEND (/workspace/backend/app/):
+
+app/
+├── main.py                 # Точка входа FastAPI, регистрация роутеров, 
+                            # exception handlers
+├── models.py               # SQLAlchemy ORM модели (User, Listing, Booking, 
+                            # Review, Message)
+│
+├── core/                   # Ядро приложения
+│   ├── config.py           # Настройки через pydantic-settings 
+                            # (DATABASE_URL, JWT_SECRET_KEY)
+│   ├── database.py         # AsyncSession factory, init_db(), close_db()
+│   ├── security.py         # JWT (python-jose), bcrypt хеширование, 
+                            # зависимости авторизации
+│   ├── logging.py          # structlog конфигурация
+│   └── exceptions.py       # Кастомные исключения (AppException, 
+                            # NotFoundException, etc.)
+│
+├── schemas/                # Pydantic модели для валидации request/response
+│   ├── auth.py             # Login/Register схемы, TokenPayload
+│   ├── booking.py          # BookingCreate, BookingResponse, BookingStatus 
+                            # (Enum)
+│   ├── listing.py          # ListingCreate, ListingResponse
+│   └── ...
+│
+├── crud/                   # Data Access Layer (прямые операции с БД)
+│   ├── user.py             # UserCRUD класс
+│   ├── booking.py          # BookingCRUD: create, get_by_id, 
+                            # check_date_conflict()
+│   ├── listing.py          # ListingCRUD
+│   └── review.py           # ReviewCRUD
+│
+├── services/               # Business Logic Layer
+│   ├── booking.py          # BookingService: State Machine, 
+                            # VALID_TRANSITIONS dict
+│   ├── auth_service.py     # AuthService: логика регистрации/логина
+│   ├── listing.py          # ListingService
+│   └── ...
+│
+├── routers/                # API Router layer (FastAPI routers)
+│   ├── auth.py             # /api/v1/auth/login, /register
+│   ├── booking.py          # /api/v1/bookings/, /{id}/confirm, /{id}/cancel
+│   ├── listing.py          # /api/v1/listings/
+│   └── review.py           # /api/v1/reviews/
+│
+└── api/                    # Legacy/дополнительные API модули
+    └── auth_router.py
+
+
+FRONTEND (/workspace/frontend/src/):
+
+src/
+├── main.tsx                # Точка входа React + Mantine UI
+├── types/index.ts          # TypeScript интерфейсы (Booking, User, Listing, 
+                            # etc.)
+│
+├── api/                    # API client layer
+│   ├── axios.ts            # Axios instance с interceptors
+│   ├── auth.ts             # login(), register() вызовы
+│   ├── bookings.ts         # bookingApi.createBooking(), confirmBooking(), 
+                            # etc.
+│   └── listings.ts         # listingApi методы
+│
+├── contexts/               # React Context
+│   └── AuthContext.tsx     # AuthProvider: хранение токенов, user state
+│
+├── components/             # UI компоненты
+│   └── AppLayout.tsx       # Основной layout с навигацией
+│
+├── pages/                  # Страницы приложения
+│   ├── Auth/
+│   │   ├── LoginPage.tsx
+│   │   └── RegisterPage.tsx
+│   ├── Bookings/
+│   │   ├── MyBookingsPage.tsx
+│   │   └── BookingDetailPage.tsx
+│   └── Listings/
+│       ├── ListingsFeedPage.tsx
+│       ├── CreateListingPage.tsx
+│       └── ...
+│
+└── routes/                 # Роутинг
+    ├── index.tsx           # Определение маршрутов
+    ├── ProtectedRoute.tsx  # HOC для защищённых роутов
+    └── PublicRoute.tsx     # HOC для публичных роутов
+
+
+1.2 Архитектурные паттерны
+--------------------------------------------------------------------------------
+
+1. Layered Architecture (3-tier) на Backend:
+   - Routers → Services → CRUD → Database
+   - Пример: booking_router.create_booking() → 
+             booking_service.create_booking() → 
+             booking_crud.create()
+
+2. Dependency Injection (FastAPI native):
+   - Через Depends() в роутах: db: AsyncSession = Depends(get_db)
+   - get_current_user: User = Depends(get_current_user) — внедрение 
+     пользователя из JWT
+   - Сервисы как синглтоны: booking_service = BookingService() 
+     (экземпляр в конце файла)
+
+3. Repository Pattern (CRUD layer):
+   - Каждый CRUD класс инкапсулирует SQL-запросы
+   - Пример: booking_crud.check_date_conflict() скрывает SQLAlchemy query 
+     логику
+
+4. State Machine Pattern:
+   - Явно реализован в services/booking.py через VALID_TRANSITIONS dict
+   - Статусы хранятся в БД как Enum (BookingStatus)
+
+5. Modular Monolith:
+   - Модули по доменам: auth, booking, listing, review
+   - Каждый модуль имеет свои: router, service, crud, schemas
+
+
+2. БИЗНЕС-ЛОГИКА (САМОЕ ВАЖНОЕ)
+================================================================================
+
+2.1 Машина состояний для Бронирования (Booking)
+--------------------------------------------------------------------------------
+
+ГДЕ ХРАНЯТСЯ СТАТУСЫ:
+- Файл: /workspace/backend/app/models.py, строки 49-66
+- Enum BookingStatus с значениями: new, pending, confirmed, rejected, 
+  cancelled, completed
+- В БД: колонка status типа ENUM('booking_status') в таблице bookings 
+  (строка 200-201)
+- Индекс: ix_bookings_listing_dates для быстрого поиска по статусу
+
+
+ПЕРЕХОДЫ СОСТОЯНИЙ (STATE MACHINE):
+- Файл: /workspace/backend/app/services/booking.py, строки 20-28
+
+VALID_TRANSITIONS = {
+    BookingStatus.NEW: [BookingStatus.PENDING, BookingStatus.CANCELLED],
+    BookingStatus.PENDING: [BookingStatus.CONFIRMED, BookingStatus.REJECTED, 
+                            BookingStatus.CANCELLED],
+    BookingStatus.CONFIRMED: [BookingStatus.CANCELLED, BookingStatus.COMPLETED],
+    BookingStatus.REJECTED: [],      # Терминальный
+    BookingStatus.CANCELLED: [],      # Терминальный
+    BookingStatus.COMPLETED: [],      # Терминальный
+}
+
+
+КАК ПРОИСХОДИТ ПЕРЕХОД pending → confirmed:
+
+1. Хост вызывает POST /api/v1/bookings/{id}/confirm 
+   (роутер, строка 136-159)
+
+2. Роутер вызывает booking_service.confirm_booking() 
+   (сервис, строки 195-224)
+
+3. Сервис делает ДВОЙНУЮ проверку:
+   a) Сначала валидация перехода через VALID_TRANSITIONS 
+      (строка 136-140)
+   b) Затем проверка прав: только хост или модератор 
+      (строки 156-159)
+   c) ФИНАЛЬНАЯ проверка доступности дат через 
+      booking_crud.check_date_conflict() (строки 205-216) — 
+      защита от race condition
+
+4. Если всё OK → вызывается 
+   booking_crud.update_status(db, booking_id, BookingStatus.CONFIRMED) 
+   (CRUD, строки 86-100)
+
+5. В БД выполняется UPDATE запрос, статус меняется на confirmed
+
+
+ПРОВЕРКИ В КОДЕ VS БД:
+
+В коде (Python):
+- Валидация переходов (VALID_TRANSITIONS)
+- Проверка прав доступа (role-based)
+- Проверка дат (не в прошлом, end > start) — Pydantic validator
+- Проверка конфликтов дат — SQLAlchemy query
+
+В БД:
+- ENUM constraint на колонке status
+- Foreign Key constraints (guest_id, listing_id)
+- Check constraint на rating (1-5) — закомментирован в models.py, 
+  строка 279-281
+
+
+2.2 Проверка "свободных дат" (Double Booking Prevention)
+--------------------------------------------------------------------------------
+
+РЕАЛИЗАЦИЯ: SQL-запрос через SQLAlchemy (Python ORM)
+
+- Файл: /workspace/backend/app/crud/booking.py, строки 102-139
+- Метод: check_date_conflict()
+
+
+ЛОГИКА ПРОВЕРКИ:
+
+query = (
+    select(Booking)
+    .where(Booking.listing_id == listing_id)
+    .where(
+        Booking.status.in_([
+            BookingStatus.CONFIRMED,
+            BookingStatus.PENDING,
+            BookingStatus.NEW
+        ])
+    )
+    .where(
+        and_(
+            Booking.start_date < end_date,      # start1 < end2
+            Booking.end_date > start_date       # end1 > start2
+        )
+    )
+)
+
+
+КЛЮЧЕВЫЕ ДЕТАЛИ:
+
+1. Это SQL-запрос, выполняемый через SQLAlchemy Core (не Python-цикл)
+
+2. Проверяются только активные бронирования: CONFIRMED, PENDING, NEW
+
+3. Используется формула пересечения интервалов: 
+   start1 < end2 AND end1 > start2
+
+4. Опциональный параметр exclude_booking_id — для обновления 
+   существующего бронирования
+
+5. Возвращает список конфликтующих Booking объектов (не просто count)
+
+
+ГДЕ ВЫЗЫВАЕТСЯ:
+- При создании: services/booking.py, строки 64-74
+- При подтверждении хостом: services/booking.py, строки 205-216 
+  (защита от гонки)
+
+
+ИНДЕКСЫ В БД ДЛЯ ОПТИМИЗАЦИИ:
+- Файл: models.py, строки 225-228
+
+__table_args__ = (
+    Index("ix_bookings_dates", "start_date", "end_date"),
+    Index("ix_bookings_listing_dates", "listing_id", "start_date", "end_date"),
+)
+
+
+3. ИНТЕГРАЦИЯ И СТЕК
+================================================================================
+
+3.1 Frontend ↔ Backend коммуникация
+--------------------------------------------------------------------------------
+
+AXIOS INSTANCE:
+- Файл: /workspace/frontend/src/api/axios.ts
+- Base URL: http://localhost:8000
+- Создан через axios.create() (строки 6-11)
+
+
+INTERCEPTORS:
+
+1. Request Interceptor (строки 14-23):
+
+   apiClient.interceptors.request.use((config) => {
+     const token = localStorage.getItem('access_token');
+     if (token && config.headers) {
+       config.headers.Authorization = `Bearer ${token}`;
+     }
+     return config;
+   });
+
+   - Берёт токен из localStorage
+   - Добавляет Authorization: Bearer <token> header
+
+
+2. Response Interceptor (строки 26-72):
+   - Обрабатывает 401 → очистка токенов, редирект на /login
+   - Обрабатывает 403 → notification "Access denied"
+   - Обрабатывает 404, 500, ERR_NETWORK → user-friendly уведомления
+
+
+ПРИМЕР ИСПОЛЬЗОВАНИЯ:
+- Файл: /workspace/frontend/src/api/bookings.ts
+
+createBooking: async (data: BookingCreate): Promise<Booking> => {
+  const response = await apiClient.post('/api/v1/bookings/', data);
+  return response.data;
+}
+
+
+3.2 Валидация данных
+--------------------------------------------------------------------------------
+
+PYDANTIC MODELS (BACKEND):
+- Все схемы в /workspace/backend/app/schemas/
+- Используются для:
+  * Request body валидации (автоматически FastAPI)
+  * Response сериализации (from_attributes=True)
+
+
+ПРИМЕРЫ ВАЛИДАТОРОВ:
+
+1. Model Validator (строки 47-54 в schemas/booking.py):
+
+   @model_validator(mode='after')
+   def validate_dates(self) -> 'BookingCreate':
+       if self.start_date >= self.end_date:
+           raise ValueError("Дата выезда должна быть позже даты заезда")
+       if self.start_date < date.today():
+           raise ValueError("Дата заезда не может быть в прошлом")
+       return self
+
+
+2. Field Validator (пример в models.py, строки 123-128):
+
+   @validates("email")
+   def validate_email(self, key: str, value: str) -> str:
+       if "@" not in value or "." not in value:
+           raise ValueError("Invalid email format")
+       return value.lower()
+
+
+3. Custom Validators в Schema (schemas/booking.py, строки 140-164):
+   - validate_status_transition() — комментирует, что полная валидация 
+     в сервисе
+
+
+FRONTEND ВАЛИДАЦИЯ:
+- TypeScript интерфейсы (/workspace/frontend/src/types/index.ts)
+- Mantine UI формы с встроенной валидацией (не видно в предоставленных 
+  файлах, но используется в компонентах)
+
+
+3.3 Логирование
+--------------------------------------------------------------------------------
+
+БИБЛИОТЕКА: structlog
+- Файл: /workspace/backend/app/core/logging.py
+
+
+КОНФИГУРАЦИЯ (строки 7-22):
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,      # merge context vars
+        structlog.processors.add_log_level,           # добавляет level
+        structlog.processors.StackInfoRenderer(),     # стектрейс
+        structlog.dev.set_exc_info,                   # exception info
+        structlog.processors.TimeStamper(fmt="iso"),  # ISO timestamp
+        structlog.dev.ConsoleRenderer(),              # цветной вывод в консоль
+    ],
+    wrapper_class=structlog.make_filtering_bound_logger(10),
+    logger_factory=structlog.PrintLoggerFactory(),
+)
+
+
+ЧТО ЛОГИРУЕТСЯ:
+
+1. Startup/Shutdown (main.py, строки 43, 55):
+   - "Starting up CouchSurfing API"
+   - "Shutting down CouchSurfing API"
+
+2. Exceptions (main.py, строки 134-198):
+   - AppException: path, method, exception message, status_code
+   - ValidationError: path, errors list
+   - Exception: path, method, exception, exc_info=True (полный стектрейс)
+
+3. Бизнес-события (можно добавить через get_logger()):
+   - Пример использования: logger = get_logger(__name__) в любом модуле
+
+
+АСИНХРОННОСТЬ: structlog выбран т.к. неблокирующий и поддерживает 
+context vars
+
+
+4. БЕЗОПАСНОСТЬ
+================================================================================
+
+4.1 Хранение паролей
+--------------------------------------------------------------------------------
+
+АЛГОРИТМ: bcrypt
+- Файл: /workspace/backend/app/core/security.py, строки 22-35
+- Библиотека: bcrypt (импортирован как _bcrypt)
+
+
+ХЕШИРОВАНИЕ:
+
+def get_password_hash(password: str) -> str:
+    return _bcrypt.hashpw(
+        password.encode('utf-8'), 
+        _bcrypt.gensalt()           # автоматическая генерация salt
+    ).decode('utf-8')
+
+
+ВЕРИФИКАЦИЯ:
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return _bcrypt.checkpw(
+        plain_password.encode('utf-8'), 
+        hashed_password.encode('utf-8')
+    )
+
+
+ГДЕ ИСПОЛЬЗУЕТСЯ:
+- Регистрация: auth_service.py (не показан полностью, но вызывается при 
+  создании пользователя)
+- Логин: сравнение введённого пароля с user.password_hash из БД
+
+
+ХРАНЕНИЕ В БД:
+- Модель User, поле password_hash: Mapped[str] (строка 86 в models.py)
+- Тип колонки: String(255) — достаточно для bcrypt хеша (~60 символов)
+
+
+4.2 Передача JWT токенов
+--------------------------------------------------------------------------------
+
+ФОРМАТ ТОКЕНА:
+- Файл: /workspace/backend/app/core/security.py, строки 43-73
+- Библиотека: python-jose (JWT)
+- Алгоритм: HS256 (HMAC with SHA-256)
+
+
+PAYLOAD ТОКЕНА:
+
+to_encode = {
+    "sub": str(subject),        # User ID (string)
+    "exp": expire,              # Expiration time (datetime)
+    "type": "access",           # Token type: "access" или "refresh"
+    "role": role.value,         # UserRole: "guest", "host", "moderator"
+}
+
+
+ВРЕМЯ ЖИЗНИ:
+- Access token: 30 минут (ACCESS_TOKEN_EXPIRE_MINUTES)
+- Refresh token: 7 дней (REFRESH_TOKEN_EXPIRE_DAYS)
+- Конфиг: /workspace/backend/app/core/config.py, строки 14-17
+
+
+ПЕРЕДАЧА ТОКЕНОВ:
+
+1. От сервера к клиенту (при логине):
+   - В JSON response body
+   - Поля: access_token, refresh_token, token_type
+   - Пример response схемы: TokenResponse в frontend/src/types/index.ts
+
+2. От клиента к серверу (в запросах):
+   - В HTTP заголовке Authorization
+   - Формат: Authorization: Bearer <access_token>
+   - Добавляется автоматически через axios interceptor 
+     (frontend/src/api/axios.ts, строки 14-23)
+
+3. Хранение на клиенте:
+   - LocalStorage (не Cookies!)
+   - Ключи: access_token, refresh_token, user
+   - Извлечение: localStorage.getItem('access_token')
+
+
+ВАЛИДАЦИЯ ТОКЕНА НА СЕРВЕРЕ:
+- Dependency get_current_user_token() (строки 153-169)
+- Декодирование через jwt.decode() с проверкой:
+  * Подпись (SECRET_KEY)
+  * Срок действия (exp)
+  * Наличие обязательных claims (sub, exp, type)
+
+
+REFRESH МЕХАНИЗМ:
+- В коде есть create_refresh_token() (строки 76-103)
+- Но endpoint для refresh токена не показан в предоставленных роутерах
+- Предположительно: отдельный POST /auth/refresh endpoint
+
+
+5. ДОПОЛНИТЕЛЬНЫЕ ДЕТАЛИ
+================================================================================
+
+СТЕК ТЕХНОЛОГИЙ:
+- Backend: Python 3.12+, FastAPI, SQLAlchemy (async), asyncpg, 
+  Pydantic v2, python-jose, bcrypt, structlog
+- Frontend: React 18+, TypeScript, Vite, Axios, Mantine UI
+- БД: PostgreSQL (асинхронный драйвер asyncpg)
+- Миграции: Alembic (папка /backend/alembic/)
+
+
+CORS НАСТРОЙКА:
+- Разрешённые origins: http://localhost:5173, http://127.0.0.1:5173
+- Credentials: true
+- Methods: GET, POST, PUT, DELETE, OPTIONS
+
+
+ОБРАБОТКА ОШИБОК:
+- Кастомные исключения: AppException, NotFoundException, 
+  AuthorizationException, ValidationException, ConflictException
+- Глобальные exception handlers в main.py (строки 122-209)
+- Единый формат ответа: {"error": {"message": "...", "detail": "...", 
+  "type": "..."}}
+
+
+================================================================================
+КОНЕЦ ДОКУМЕНТА
+Подготовлено Техническим Лидером для раздела 3.2 пояснительной записки
+================================================================================
