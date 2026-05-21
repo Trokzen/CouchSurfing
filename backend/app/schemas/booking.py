@@ -3,7 +3,7 @@ Booking Schemas - Pydantic модели для бронирований
 """
 from datetime import date, datetime
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
 from enum import Enum
 
 
@@ -76,6 +76,15 @@ class BookingResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_fields(cls, data):
+        """Resolve message from guest_message ORM field."""
+        if hasattr(data, "guest_message"):
+            if not hasattr(data, "message") or getattr(data, "message", None) is None:
+                object.__setattr__(data, "message", data.guest_message)
+        return data
+
 
 class BookingWithDetailsResponse(BaseModel):
     """Бронирование с деталями жилья и пользователя"""
@@ -99,12 +108,26 @@ class BookingBrief(BaseModel):
     """Краткая информация о бронировании для списков"""
     id: int
     listing_id: int
-    listing_title: str
+    listing_title: str = ""
     start_date: date
     end_date: date
     status: BookingStatus
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_listing_title(cls, data):
+        """Extract listing_title from listing relationship."""
+        if hasattr(data, "listing_title") and getattr(data, "listing_title", None) not in ("", None):
+            return data
+        if hasattr(data, "listing") and data.listing is not None:
+            if hasattr(data.listing, "title"):
+                object.__setattr__(data, "listing_title", data.listing.title)
+        elif isinstance(data, dict):
+            if "listing" in data and data["listing"] and "title" in data["listing"]:
+                data["listing_title"] = data["listing"]["title"]
+        return data
 
 
 # ==================== Status Change Requests ====================

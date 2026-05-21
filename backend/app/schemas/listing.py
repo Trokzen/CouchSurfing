@@ -3,7 +3,7 @@ Listing Schemas - Pydantic модели для жилья
 """
 from datetime import date, datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 # ==================== Listing Create/Update ====================
@@ -61,6 +61,18 @@ class ListingResponse(BaseModel):
     updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("amenities", mode="before")
+    @classmethod
+    def parse_amenities(cls, v):
+        if isinstance(v, str):
+            import json
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                # Fallback: split by comma
+                return [item.strip() for item in v.split(",") if item.strip()]
+        return v or []
 
 
 class ListingBrief(BaseModel):

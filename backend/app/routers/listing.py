@@ -87,7 +87,7 @@ async def search_listings(
     
     listings, total = await listing_service.search_listings(db, filters)
     
-    return PaginatedResponse(
+    return PaginatedResponse.create(
         items=listings,
         total=total,
         page=page,

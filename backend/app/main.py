@@ -153,17 +153,33 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(ValidationError)
     async def validation_exception_handler(request: Request, exc: ValidationError):
         """Handle Pydantic validation errors."""
+        # Sanitize errors: remove raw SQLAlchemy objects from input_value
+        # to avoid "Object is not JSON serializable" errors
+        errors = []
+        for err in exc.errors():
+            err_copy = dict(err)
+            if "input" in err_copy:
+                inp = err_copy["input"]
+                if hasattr(inp, "__class__") and not isinstance(inp, (str, int, float, bool, list, dict, type(None))):
+                    err_copy["input"] = str(inp)
+                elif isinstance(inp, list):
+                    err_copy["input"] = [
+                        str(item) if hasattr(item, "__class__") and not isinstance(item, (str, int, float, bool, dict, type(None))) else item
+                        for item in inp
+                    ]
+            errors.append(err_copy)
+
         logger.warning(
             "Validation error",
             path=request.url.path,
-            errors=exc.errors(),
+            errors=errors,
         )
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
                 "error": {
                     "message": "Validation error",
-                    "detail": exc.errors(),
+                    "detail": errors,
                     "type": "ValidationError",
                 }
             },

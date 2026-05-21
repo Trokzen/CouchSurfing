@@ -26,7 +26,7 @@ class BookingCRUD:
             listing_id=booking_data.listing_id,
             start_date=booking_data.start_date,
             end_date=booking_data.end_date,
-            message=booking_data.message,
+            guest_message=booking_data.message,
             status=BookingStatus.NEW
         )
         db.add(booking)
