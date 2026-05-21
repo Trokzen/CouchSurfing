@@ -4,21 +4,8 @@ Auth Schemas - Pydantic модели для аутентификации
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from enum import Enum
 
-
-class UserRole(str, Enum):
-    """Роли пользователей в системе"""
-    guest = "guest"
-    host = "host"
-    moderator = "moderator"
-
-
-class VerificationStatus(str, Enum):
-    """Статусы верификации пользователя"""
-    unverified = "unverified"
-    pending = "pending"
-    verified = "verified"
+from app.models import UserRole, VerificationStatus
 
 
 # ==================== Registration ====================
@@ -28,7 +15,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, description="Пароль минимум 8 символов")
     full_name: str = Field(..., min_length=2, max_length=100)
-    role: UserRole = UserRole.guest
+    role: UserRole = UserRole.GUEST
 
     model_config = ConfigDict(
         json_schema_extra={

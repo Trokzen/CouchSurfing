@@ -28,6 +28,16 @@ class AuthService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    @staticmethod
+    def get_password_hash(password: str) -> str:
+        """Хеширование пароля"""
+        return get_password_hash(password)
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        """Проверка пароля"""
+        return verify_password(plain_password, hashed_password)
+
     async def register(self, user_data: UserRegister) -> User:
         """
         Регистрация нового пользователя
@@ -50,11 +60,12 @@ class AuthService:
             password_hash=password_hash,
             full_name=user_data.full_name,
             role=user_data.role,
-            verification_status=VerificationStatus.unverified,
+            verification_status=VerificationStatus.UNVERIFIED,
         )
 
         self.session.add(user)
         await self.session.flush()  # Получаем ID
+        await self.session.commit()  # Сохраняем в БД
         await self.session.refresh(user)
 
         return user

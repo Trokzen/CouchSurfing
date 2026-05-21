@@ -47,10 +47,11 @@ class UserCRUD:
             password_hash=password_hash,
             full_name=user_data.full_name,
             role=user_data.role,
-            verification_status=VerificationStatus.unverified,
+            verification_status=VerificationStatus.UNVERIFIED,
         )
         self.db.add(user)
         await self.db.flush()  # Получаем ID до коммита
+        await self.db.commit()  # Сохраняем в БД
         await self.db.refresh(user)
         return user
 

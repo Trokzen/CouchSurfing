@@ -179,7 +179,7 @@ async def get_user_by_id(
     "/{user_id}/verification",
     response_model=UserResponse,
     summary="Изменение статуса верификации (только для модераторов)",
-    dependencies=[Depends(require_role(UserRole.moderator))],
+    dependencies=[Depends(require_role(UserRole.MODERATOR))],
 )
 async def update_verification_status(
     user_id: int,

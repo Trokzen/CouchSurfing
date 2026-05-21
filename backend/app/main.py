@@ -1,5 +1,12 @@
 """Main FastAPI application entry point."""
 
+import asyncio
+import sys
+
+# Set event loop policy for Windows before any asyncio calls
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -36,9 +43,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting up CouchSurfing API")
     
     # Initialize database (in production, use Alembic migrations instead)
-    if settings.DEBUG:
-        await init_db()
-        logger.info("Database initialized (DEBUG mode)")
+    # Temporarily disabled due to connection issues
+    # if settings.DEBUG:
+    #     await init_db()
+    #     logger.info("Database initialized (DEBUG mode)")
     
     yield
     
@@ -64,17 +72,17 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Register exception handlers (должны быть зарегистрированы перед CORS middleware)
+    register_exception_handlers(app)
+
     # Configure CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.FRONTEND_URL],
+        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
-
-    # Register exception handlers
-    register_exception_handlers(app)
 
     # Include routers
     # Auth router already has /auth prefix internally, so we use /api/v1 as main prefix
@@ -95,11 +103,29 @@ def create_app() -> FastAPI:
     return app
 
 
+def get_cors_headers(request: Request) -> dict:
+    """Get CORS headers matching the request origin."""
+    ALLOWED_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    origin = request.headers.get("origin")
+    if origin in ALLOWED_ORIGINS:
+        allow_origin = origin
+    else:
+        allow_origin = ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else ""
+    return {
+        "Access-Control-Allow-Origin": allow_origin,
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+    }
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """
     Register global exception handlers.
     
     Provides consistent error response format across the application.
+    CORS headers are added manually because exception handlers bypass
+    the CORS middleware response processing.
     """
 
     @app.exception_handler(AppException)
@@ -121,6 +147,7 @@ def register_exception_handlers(app: FastAPI) -> None:
                     "type": type(exc).__name__,
                 }
             },
+            headers=get_cors_headers(request),
         )
 
     @app.exception_handler(ValidationError)
@@ -140,6 +167,7 @@ def register_exception_handlers(app: FastAPI) -> None:
                     "type": "ValidationError",
                 }
             },
+            headers=get_cors_headers(request),
         )
 
     @app.exception_handler(Exception)
@@ -161,6 +189,7 @@ def register_exception_handlers(app: FastAPI) -> None:
                     "type": type(exc).__name__,
                 }
             },
+            headers=get_cors_headers(request),
         )
 
 

@@ -7,8 +7,8 @@ from functools import lru_cache
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:123@localhost:5432/couchsurfing"
+    # Database - using postgres DB with couchsurfing schema
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:1234@localhost:5432/postgres"
 
     # JWT Settings
     SECRET_KEY: str = "your-secret-key-change-in-production"
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # App
     APP_NAME: str = "CouchSurfing API"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     class Config:
         env_file = ".env"

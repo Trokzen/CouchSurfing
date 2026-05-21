@@ -1,5 +1,12 @@
 """Database connection and session management."""
 
+import asyncio
+import sys
+
+# Set event loop policy for Windows before any asyncio calls
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -8,8 +15,7 @@ from sqlalchemy.ext.asyncio import (
     async_scoped_session,
 )
 from sqlalchemy.orm import DeclarativeBase, declared_attr
-from sqlalchemy.pool import NullPool
-import asyncio
+# from sqlalchemy.pool import NullPool  # Temporarily disabled
 
 from app.core.config import get_settings
 
@@ -26,11 +32,14 @@ class Base(DeclarativeBase):
 
 
 # Create async engine with proper settings for development
+# Use DATABASE_URL directly (without query parameters, as we removed them)
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,  # Log SQL queries in debug mode
-    poolclass=NullPool,  # Use NullPool for better async compatibility in dev
+    echo=True,  # Force logging for debugging
     future=True,
+    connect_args={
+        "server_settings": {"search_path": "couchsurfing"}
+    }
 )
 
 # Create async session factory

@@ -131,7 +131,7 @@ def decode_token(token: str) -> TokenPayload:
             )
         
         # Преобразуем роль в enum если есть
-        user_role = UserRole(role) if role else UserRole.guest
+        user_role = UserRole(role) if role else UserRole.GUEST
         
         return TokenPayload(
             sub=sub,

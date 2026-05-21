@@ -3,7 +3,7 @@ Listing Router - API endpoints для жилья
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 from datetime import date
 
 from app.core.database import get_db
@@ -60,10 +60,10 @@ async def get_host_listings(
 
 @router.get("/search", response_model=PaginatedResponse[ListingResponse])
 async def search_listings(
-    city: str = Query(None, min_length=2, description="Город"),
-    check_in: date = Query(None, description="Дата заезда (YYYY-MM-DD)"),
-    check_out: date = Query(None, description="Дата выезда (YYYY-MM-DD)"),
-    min_capacity: int = Query(None, ge=1, description="Минимальная вместимость"),
+    city: Optional[str] = Query(None, min_length=2, description="Город"),
+    check_in: Optional[date] = Query(None, description="Дата заезда (YYYY-MM-DD)"),
+    check_out: Optional[date] = Query(None, description="Дата выезда (YYYY-MM-DD)"),
+    min_capacity: Optional[int] = Query(None, ge=1, description="Минимальная вместимость"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     size: int = Query(20, ge=1, le=50, description="Размер страницы"),
     db: AsyncSession = Depends(get_db)

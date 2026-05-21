@@ -86,10 +86,10 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole), default=UserRole.GUEST, nullable=False
+        Enum(UserRole, name="user_role", values_callable=lambda x: [e.value for e in x]), default=UserRole.GUEST, nullable=False
     )
     verification_status: Mapped[VerificationStatus] = mapped_column(
-        Enum(VerificationStatus), default=VerificationStatus.UNVERIFIED, nullable=False
+        Enum(VerificationStatus, name="verification_status", values_callable=lambda x: [e.value for e in x]), default=VerificationStatus.UNVERIFIED, nullable=False
     )
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -198,7 +198,7 @@ class Booking(Base):
     start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     end_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[BookingStatus] = mapped_column(
-        Enum(BookingStatus), default=BookingStatus.NEW, nullable=False, index=True
+        Enum(BookingStatus, name="booking_status", values_callable=lambda x: [e.value for e in x]), default=BookingStatus.NEW, nullable=False, index=True
     )
     guest_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     host_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
