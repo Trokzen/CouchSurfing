@@ -1,42 +1,40 @@
 -- CouchSurfing Database Setup Script
 -- Для локальной PostgreSQL с паролем 1234
--- Этот скрипт создает базу данных, пользователя и все необходимые таблицы
+-- Этот скрипт создает схему couchsurfing в БД postgres и все необходимые таблицы
 
 -- ============================================================================
 -- ИНСТРУКЦИЯ ПО ИЗМЕНЕНИЮ ПАРОЛЯ БД
 -- ============================================================================
--- Пароль от базы данных задается в двух местах:
+-- Пароль от базы данных задается в ТРЕХ местах:
 -- 
 -- 1. В этом файле (setup_db.sql) - строка ниже:
 --    ALTER USER postgres WITH PASSWORD '1234';
 --
 -- 2. В файле конфигурации приложения /workspace/backend/app/core/config.py:
---    DATABASE_URL: str = "postgresql+asyncpg://postgres:1234@localhost:5432/couchsurfing"
+--    DATABASE_URL: str = "postgresql+asyncpg://postgres:1234@localhost:5432/postgres?options=-c%20search_path%3Dcouchsurfing"
+--
+-- 3. В файле миграций /workspace/backend/alembic.ini:
+--    sqlalchemy.url = postgresql+asyncpg://postgres:1234@localhost:5432/postgres?options=-c%20search_path%3Dcouchsurfing
 --
 -- Чтобы сменить пароль:
 --    a) Измените пароль в этом файле до запуска скрипта
 --    b) Измените пароль в config.py в строке подключения DATABASE_URL
---    c) Перезапустите приложение
+--    c) Измените пароль в alembic.ini в параметре sqlalchemy.url
+--    d) Перезапустите приложение
 -- ============================================================================
 
--- 1. Создаем базу данных (если не существует)
--- Внимание: Этот запрос нужно запускать отдельно от других, 
--- так как CREATE DATABASE нельзя выполнять внутри транзакции
-SELECT 'CREATE DATABASE couchsurfing' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'couchsurfing')\gexec
-
--- 2. Устанавливаем пароль для пользователя postgres
+-- 1. Устанавливаем пароль для пользователя postgres
 ALTER USER postgres WITH PASSWORD '1234';
 
--- 3. Предоставляем права на базу данных
-GRANT ALL PRIVILEGES ON DATABASE couchsurfing TO postgres;
-
 -- ============================================================================
--- СОЗДАНИЕ ТАБЛИЦ
--- Подключитесь к базе данных couchsurfing перед выполнением следующей части
+-- СОЗДАНИЕ СХЕМЫ И ТАБЛИЦ
 -- ============================================================================
 
--- Переключаемся на базу данных couchsurfing
-\c couchsurfing
+-- 2. Создаем схему couchsurfing (если не существует)
+CREATE SCHEMA IF NOT EXISTS couchsurfing;
+
+-- Переключаемся на схему couchsurfing
+SET search_path TO couchsurfing;
 
 -- Создаем ENUM типы
 CREATE TYPE user_role AS ENUM ('guest', 'host', 'moderator');
@@ -174,10 +172,6 @@ CREATE TRIGGER update_bookings_updated_at
 --    Пример через psql: psql -U postgres
 -- 3. Выполните этот скрипт: \i /workspace/backend/setup_db.sql
 -- 
--- ИЛИ выполните по частям:
---    Часть 1 (создание БД): Выполните первые запросы до \c couchsurfing
---    Часть 2 (создание таблиц): После создания БД выполните оставшуюся часть
---
 -- 4. После этого можете запускать приложение:
 --    cd /workspace/backend
 --    python -m uvicorn app.main:app --reload
