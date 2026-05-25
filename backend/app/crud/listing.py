@@ -54,7 +54,13 @@ class ListingCRUD:
         include_inactive: bool = False
     ) -> List[Listing]:
         """Получение всех жилья конкретного хоста"""
-        query = select(Listing).where(Listing.host_id == host_id)
+        from sqlalchemy.orm import selectinload
+        
+        query = (
+            select(Listing)
+            .options(selectinload(Listing.images))
+            .where(Listing.host_id == host_id)
+        )
         
         if not include_inactive:
             query = query.where(Listing.is_active == True)
@@ -104,8 +110,14 @@ class ListingCRUD:
         - Бронирование конфликтует, если интервалы пересекаются
         - [start1, end1] пересекает [start2, end2] если start1 < end2 AND end1 > start2
         """
+        from sqlalchemy.orm import selectinload
+        
         # Базовый запрос
-        base_query = select(Listing).where(Listing.is_active == True)
+        base_query = (
+            select(Listing)
+            .options(selectinload(Listing.images))
+            .where(Listing.is_active == True)
+        )
         
         # Фильтр по городу (частичное совпадение, case-insensitive)
         if filters.city:
