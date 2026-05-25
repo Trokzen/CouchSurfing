@@ -39,10 +39,9 @@ class ListingCRUD:
     
     async def get_by_id(self, db: AsyncSession, listing_id: int) -> Optional[Listing]:
         """Получение жилья по ID"""
-        from sqlalchemy.orm import joinedload
         result = await db.execute(
             select(Listing)
-            .options(joinedload(Listing.images))
+            .options(selectinload(Listing.images))
             .where(Listing.id == listing_id)
         )
         return result.scalar_one_or_none()
@@ -54,11 +53,10 @@ class ListingCRUD:
         include_inactive: bool = False
     ) -> List[dict]:
         """Получение всех жилья конкретного хоста"""
-        from sqlalchemy.orm import joinedload
         
         query = (
             select(Listing)
-            .options(joinedload(Listing.images))
+            .options(selectinload(Listing.images))
             .where(Listing.host_id == host_id)
         )
         
@@ -132,12 +130,12 @@ class ListingCRUD:
         - Бронирование конфликтует, если интервалы пересекаются
         - [start1, end1] пересекает [start2, end2] если start1 < end2 AND end1 > start2
         """
-        from sqlalchemy.orm import joinedload
+        from sqlalchemy.orm import selectinload
         
         # Базовый запрос
         base_query = (
             select(Listing)
-            .options(joinedload(Listing.images))
+            .options(selectinload(Listing.images))
             .where(Listing.is_active == True)
         )
         
