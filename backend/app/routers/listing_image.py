@@ -20,8 +20,8 @@ settings = get_settings()
 
 router = APIRouter(prefix="/listings", tags=["Listing Images"])
 
-# Директория для загрузки изображений
-UPLOAD_DIR = Path("uploads/listings")
+# Директория для загрузки изображений - используем абсолютный путь относительно app目录
+UPLOAD_DIR = Path(__file__).parent.parent / "uploads" / "listings"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -100,6 +100,40 @@ async def update_listing_image(
         user_id=current_user.id,
         user_role=current_user.role
     )
+
+
+@router.put("/{listing_id}/images/{image_id}/primary", response_model=ListingImageResponse)
+async def set_primary_image(
+    listing_id: int,
+    image_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Установить фотографию как главную для жилья.
+    Только владелец жилья может устанавливать главное фото.
+    """
+    # Проверка существования изображения
+    from app.crud.listing_image import listing_image_crud
+    image = await listing_image_crud.get_by_id(db, image_id)
+    
+    if not image:
+        raise HTTPException(status_code=404, detail="Фотография не найдена")
+    
+    # Проверка что изображение принадлежит указанному listing
+    if image.listing_id != listing_id:
+        raise HTTPException(status_code=400, detail="Фотография не принадлежит этому жилью")
+    
+    # Проверка прав доступа через владельца жилья
+    from app.services.listing import listing_service
+    listing = await listing_service.get_listing(db, listing_id)
+    if listing.host_id != current_user.id and current_user.role != UserRole.MODERATOR:
+        raise HTTPException(status_code=403, detail="Только владелец жилья может устанавливать главное фото")
+    
+    # Устанавливаем is_primary=True, CRUD автоматически сбросит у других
+    update_data = ListingImageUpdate(is_primary=True)
+    updated_image = await listing_image_crud.update(db, image_id, update_data)
+    return updated_image
 
 
 @router.delete("/images/{image_id}", status_code=204)
