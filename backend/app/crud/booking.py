@@ -72,7 +72,7 @@ class BookingCRUD:
             select(Booking)
             .join(Listing)
             .where(Listing.host_id == host_id)
-            .options(selectinload(Booking.guest))
+            .options(selectinload(Booking.guest), selectinload(Booking.listing))
         )
         
         if status:

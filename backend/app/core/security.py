@@ -182,7 +182,7 @@ async def get_current_user_id(
 
 async def get_current_user(
     db: AsyncSession = Depends(get_db),
-    token_payload: TokenPayload = get_current_user_token
+    token_payload: TokenPayload = Depends(get_current_user_token)
 ) -> User:
     """
     Dependency для получения объекта текущего пользователя из БД

@@ -7,7 +7,7 @@ from typing import List, Optional
 from datetime import date
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.routers.auth import get_current_user
 from app.models import User, UserRole
 from app.schemas.listing import (
     ListingCreate, 

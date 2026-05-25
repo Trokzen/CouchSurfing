@@ -21,9 +21,16 @@ class ListingCRUD:
         host_id: int
     ) -> Listing:
         """Создание нового жилья"""
+        import json
+        
+        # Преобразуем amenities из списка в JSON-строку для хранения в БД
+        data_dict = listing_data.model_dump()
+        if data_dict.get("amenities") is not None and isinstance(data_dict["amenities"], list):
+            data_dict["amenities"] = json.dumps(data_dict["amenities"])
+        
         listing = Listing(
             host_id=host_id,
-            **listing_data.model_dump()
+            **data_dict
         )
         db.add(listing)
         await db.commit()
