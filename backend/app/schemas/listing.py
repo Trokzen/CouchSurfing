@@ -46,6 +46,15 @@ class ListingUpdate(BaseModel):
 
 # ==================== Listing Response ====================
 
+class ListingImageBrief(BaseModel):
+    """Краткая информация о фотографии для списков"""
+    id: int
+    image_url: str
+    is_primary: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ListingResponse(BaseModel):
     """Схема ответа с данными жилья"""
     id: int
@@ -59,6 +68,7 @@ class ListingResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    images: Optional[List[ListingImageBrief]] = []
 
     model_config = ConfigDict(from_attributes=True)
 

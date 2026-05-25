@@ -39,8 +39,11 @@ class ListingCRUD:
     
     async def get_by_id(self, db: AsyncSession, listing_id: int) -> Optional[Listing]:
         """Получение жилья по ID"""
+        from sqlalchemy.orm import selectinload
         result = await db.execute(
-            select(Listing).where(Listing.id == listing_id)
+            select(Listing)
+            .options(selectinload(Listing.images))
+            .where(Listing.id == listing_id)
         )
         return result.scalar_one_or_none()
     

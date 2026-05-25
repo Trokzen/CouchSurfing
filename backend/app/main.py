@@ -22,7 +22,7 @@ from app.core.database import init_db, close_db
 from app.core.exceptions import AppException
 
 # Import routers
-from app.routers import auth_router, listing_router, booking_router
+from app.routers import auth_router, listing_router, booking_router, listing_image_router
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -89,9 +89,14 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api/v1", tags=["Authentication"])
     app.include_router(listing_router, prefix="/api/v1", tags=["Listings"])
     app.include_router(booking_router, prefix="/api/v1", tags=["Bookings"])
+    app.include_router(listing_image_router, prefix="/api/v1", tags=["Listing Images"])
     # Future routers:
     # app.include_router(reviews.router, prefix="/api/v1/reviews", tags=["Reviews"])
     # app.include_router(messages.router, prefix="/api/v1/messages", tags=["Messages"])
+
+    # Serve static files (uploaded images)
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/static/uploads", StaticFiles(directory="uploads"), name="uploads")
 
     # Health check endpoint
     @app.get("/health", tags=["Health"])
