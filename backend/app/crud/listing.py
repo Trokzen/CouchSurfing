@@ -117,6 +117,16 @@ class ListingCRUD:
         await db.commit()
         return True
     
+    async def hard_delete(self, db: AsyncSession, listing_id: int) -> bool:
+        """Полное удаление жилья из БД"""
+        listing = await self.get_by_id(db, listing_id)
+        if not listing:
+            return False
+        
+        await db.delete(listing)
+        await db.commit()
+        return True
+    
     async def search(
         self,
         db: AsyncSession,
@@ -239,6 +249,17 @@ class ListingCRUD:
         )
         
         return conflict.scalar_one_or_none() is None
+
+    async def toggle_active(self, db: AsyncSession, listing_id: int) -> Optional[Listing]:
+        """Переключение статуса активности жилья"""
+        listing = await self.get_by_id(db, listing_id)
+        if not listing:
+            return None
+        
+        listing.is_active = not listing.is_active
+        await db.commit()
+        await db.refresh(listing)
+        return listing
 
 
 # Экземпляр для использования в роутерах

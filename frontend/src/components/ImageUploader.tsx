@@ -1,4 +1,6 @@
 import React, { useRef, useState } from 'react';
+import { Button, Group, Stack, Text, Image, Badge, Box, Loader } from '@mantine/core';
+import { IconUpload, IconTrash, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { listingApi, type ImageUploadResponse } from '../api/listings';
 
 interface ImageUploaderProps {
@@ -89,12 +91,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ listingId, onImagesChange
   const primaryImage = images.find(img => img.is_primary);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Listing Photos
-        </label>
-        <div className="flex items-center space-x-4">
+    <Stack gap="md">
+      <Box>
+        <Text fw={500} mb="sm">Listing Photos</Text>
+        <Group gap="sm" align="flex-end">
           <input
             ref={fileInputRef}
             type="file"
@@ -102,70 +102,113 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ listingId, onImagesChange
             multiple
             onChange={handleFileSelect}
             disabled={uploading}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100"
+            style={{ display: 'none' }}
+            id={`file-input-${listingId}`}
           />
-          {uploading && (
-            <span className="text-sm text-gray-500">Uploading...</span>
-          )}
-        </div>
+          <Button
+            component="label"
+            htmlFor={`file-input-${listingId}`}
+            variant="outline"
+            leftSection={<IconUpload size={18} />}
+            disabled={uploading}
+            loading={uploading}
+          >
+            {uploading ? 'Uploading...' : 'Select Images'}
+          </Button>
+          {uploading && <Loader size="sm" />}
+        </Group>
         {error && (
-          <p className="mt-2 text-sm text-red-600">{error}</p>
+          <Text c="red" size="sm" mt="xs">{error}</Text>
         )}
-      </div>
+      </Box>
 
       {images.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gap: '16px'
+        }}>
           {images.map((image) => (
-            <div key={image.id} className="relative group">
-              <img
+            <Box
+              key={image.id}
+              style={{
+                position: 'relative',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                border: image.is_primary ? '2px solid var(--mantine-color-blue-6)' : '1px solid var(--mantine-color-gray-3)',
+              }}
+            >
+              <Image
                 src={image.image_url}
                 alt="Listing"
-                className={`w-full h-48 object-cover rounded-lg ${
-                  image.is_primary ? 'ring-2 ring-blue-500' : ''
-                }`}
+                height={150}
+                fit="cover"
               />
               {image.is_primary && (
-                <span className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                <Badge
+                  leftSection={<IconStarFilled size={12} />}
+                  color="blue"
+                  size="sm"
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    left: '8px',
+                  }}
+                >
                   Primary
-                </span>
+                </Badge>
               )}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100">
+              <Group
+                gap="xs"
+                justify="center"
+                p="xs"
+                style={{
+                  background: 'rgba(0, 0, 0, 0.7)',
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                }}
+              >
                 {!image.is_primary && (
-                  <button
+                  <Button
+                    size="compact-xs"
+                    variant="light"
+                    color="blue"
+                    leftSection={<IconStar size={14} />}
                     onClick={() => handleSetPrimary(image.id)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
                   >
-                    Set Primary
-                  </button>
+                    Primary
+                  </Button>
                 )}
-                <button
+                <Button
+                  size="compact-xs"
+                  variant="light"
+                  color="red"
+                  leftSection={<IconTrash size={14} />}
                   onClick={() => handleDelete(image.id)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
                 >
                   Delete
-                </button>
-              </div>
-            </div>
+                </Button>
+              </Group>
+            </Box>
           ))}
         </div>
       )}
 
       {primaryImage && (
-        <div className="mt-4">
-          <p className="text-sm text-gray-600 mb-2">Preview (Primary Image):</p>
-          <img
+        <Box mt="md">
+          <Text fw={500} mb="xs">Preview (Primary Image):</Text>
+          <Image
             src={primaryImage.image_url}
             alt="Primary Preview"
-            className="w-full h-64 object-cover rounded-lg"
+            height={250}
+            fit="cover"
+            radius="md"
           />
-        </div>
+        </Box>
       )}
-    </div>
+    </Stack>
   );
 };
 

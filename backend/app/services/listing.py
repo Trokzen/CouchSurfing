@@ -87,7 +87,7 @@ class ListingService:
         user_role: UserRole
     ) -> bool:
         """
-        Удаление жилья (мягкое).
+        Удаление жилья (полное удаление из БД).
         Только владелец или модератор может удалить жилье.
         """
         listing = await self.get_listing(db, listing_id)
@@ -96,7 +96,7 @@ class ListingService:
         if listing.host_id != user_id and user_role != UserRole.MODERATOR:
             raise ForbiddenError("Только владелец жилья может его удалить")
         
-        return await listing_crud.delete(db, listing_id)
+        return await listing_crud.hard_delete(db, listing_id)
     
     async def search_listings(
         self,
@@ -119,6 +119,21 @@ class ListingService:
         """Проверка доступности жилья на даты"""
         await self.get_listing(db, listing_id)  # Проверка существования
         return await listing_crud.check_availability(db, listing_id, start_date, end_date)
+
+    async def toggle_active(
+        self,
+        db: AsyncSession,
+        listing_id: int,
+        user_id: int
+    ) -> Listing:
+        """Переключение статуса активности жилья"""
+        listing = await self.get_listing(db, listing_id)
+        
+        # Проверка прав доступа
+        if listing.host_id != user_id:
+            raise ForbiddenError("Только владелец жилья может изменять его статус")
+        
+        return await listing_crud.toggle_active(db, listing_id)
 
 
 # Экземпляр сервиса

@@ -131,7 +131,7 @@ async def delete_listing(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Удалить жилье (мягкое удаление).
+    Удалить жилье (полное удаление из БД).
     Доступно только владельцу или модератору.
     """
     await listing_service.delete_listing(
@@ -139,6 +139,23 @@ async def delete_listing(
         listing_id=listing_id,
         user_id=current_user.id,
         user_role=current_user.role
+    )
+
+
+@router.patch("/{listing_id}/toggle-active", response_model=ListingResponse)
+async def toggle_listing_active(
+    listing_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Переключить статус активности жилья (активен/неактивен).
+    Доступно только владельцу жилья.
+    """
+    return await listing_service.toggle_active(
+        db=db,
+        listing_id=listing_id,
+        user_id=current_user.id
     )
 
 

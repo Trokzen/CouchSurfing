@@ -117,4 +117,12 @@ export const listingApi = {
     const response = await apiClient.put(`/api/v1/listings/${listingId}/images/${imageId}/primary`);
     return response.data;
   },
+
+  /**
+   * Toggle listing active status
+   */
+  toggleActive: async (listingId: number): Promise<Listing> => {
+    const response = await apiClient.patch(`/api/v1/listings/${listingId}/toggle-active`);
+    return response.data;
+  },
 };

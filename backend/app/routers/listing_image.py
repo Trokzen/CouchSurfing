@@ -25,7 +25,7 @@ UPLOAD_DIR = Path("uploads/listings")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
-@router.post("/{listing_id}/images", response_model=ListingImageResponse, status_code=201)
+@router.post("/{listing_id}/images/upload", response_model=ListingImageResponse, status_code=201)
 async def upload_listing_image(
     listing_id: int,
     file: UploadFile = File(..., description="Файл изображения"),
