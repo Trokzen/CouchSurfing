@@ -80,7 +80,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_methods=["*"],
         allow_headers=["*"],
     )
 
@@ -95,8 +95,14 @@ def create_app() -> FastAPI:
     # app.include_router(messages.router, prefix="/api/v1/messages", tags=["Messages"])
 
     # Serve static files (uploaded images)
+    import os
     from fastapi.staticfiles import StaticFiles
-    app.mount("/static/uploads", StaticFiles(directory="uploads"), name="uploads")
+    
+    # Ensure uploads directory exists
+    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    app.mount("/static", StaticFiles(directory=uploads_dir), name="static")
 
     # Health check endpoint
     @app.get("/health", tags=["Health"])
