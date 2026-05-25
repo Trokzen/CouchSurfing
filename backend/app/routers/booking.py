@@ -127,7 +127,7 @@ async def get_booking(
         start_date=booking.start_date,
         end_date=booking.end_date,
         status=booking.status,
-        message=booking.message,
+        message=booking.guest_message,
         created_at=booking.created_at,
         updated_at=booking.updated_at
     )
