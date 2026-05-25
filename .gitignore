@@ -10,26 +10,5 @@ __pycache__/
 venv/
 env/
 .env
-.env.local
 .env.*
-
-# Logs and temp files
-*.log
-*.tmp
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Build artifacts
-dist/
-build/
-*.egg-info/
-.coverage
-coverage/
-htmlcov/
-.mypy_cache/
-.pytest_cache/
 ```
