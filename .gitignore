@@ -21,34 +21,28 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual environments
+# Environment
+.venv/
 venv/
 env/
 ENV/
-.venv/
-.env/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*.tmp
 
 # Logs
 *.log
-
-# Environment
-.env
-.env.local
-*.env.*
 
 # Coverage
 .coverage
 coverage/
 htmlcov/
 
-# Temporary files
-*.tmp
-.DS_Store
-Thumbs.db
+# Testing
+.pytest_cache/
+.mypy_cache/
 ```
