@@ -39,10 +39,10 @@ class ListingCRUD:
     
     async def get_by_id(self, db: AsyncSession, listing_id: int) -> Optional[Listing]:
         """Получение жилья по ID"""
-        from sqlalchemy.orm import selectinload
+        from sqlalchemy.orm import joinedload
         result = await db.execute(
             select(Listing)
-            .options(selectinload(Listing.images))
+            .options(joinedload(Listing.images))
             .where(Listing.id == listing_id)
         )
         return result.scalar_one_or_none()
@@ -52,13 +52,13 @@ class ListingCRUD:
         db: AsyncSession, 
         host_id: int, 
         include_inactive: bool = False
-    ) -> List[Listing]:
+    ) -> List[dict]:
         """Получение всех жилья конкретного хоста"""
-        from sqlalchemy.orm import selectinload
+        from sqlalchemy.orm import joinedload
         
         query = (
             select(Listing)
-            .options(selectinload(Listing.images))
+            .options(joinedload(Listing.images))
             .where(Listing.host_id == host_id)
         )
         
@@ -66,7 +66,29 @@ class ListingCRUD:
             query = query.where(Listing.is_active == True)
         
         result = await db.execute(query.order_by(Listing.created_at.desc()))
-        return list(result.scalars().all())
+        listings = list(result.scalars().unique().all())
+        
+        # Преобразуем в словари с primary_image_url
+        result_list = []
+        for listing in listings:
+            primary_image = None
+            if listing.images:
+                primary_img = next((img for img in listing.images if img.is_primary), None)
+                if not primary_img and listing.images:
+                    primary_img = listing.images[0]
+                if primary_img:
+                    primary_image = primary_img.image_url
+            
+            result_list.append({
+                "id": listing.id,
+                "title": listing.title,
+                "city": listing.city,
+                "capacity": listing.capacity,
+                "is_active": listing.is_active,
+                "primary_image_url": primary_image
+            })
+        
+        return result_list
     
     async def update(
         self, 
@@ -101,21 +123,21 @@ class ListingCRUD:
         self,
         db: AsyncSession,
         filters: ListingSearchFilters
-    ) -> Tuple[List[Listing], int]:
+    ) -> Tuple[List[dict], int]:
         """
         Поиск жилья с фильтрацией по городу, датам и вместимости.
-        Возвращает список жилья и общее количество результатов.
+        Возвращает список жилья (как словари) и общее количество результатов.
         
         Логика проверки дат:
         - Бронирование конфликтует, если интервалы пересекаются
         - [start1, end1] пересекает [start2, end2] если start1 < end2 AND end1 > start2
         """
-        from sqlalchemy.orm import selectinload
+        from sqlalchemy.orm import joinedload
         
         # Базовый запрос
         base_query = (
             select(Listing)
-            .options(selectinload(Listing.images))
+            .options(joinedload(Listing.images))
             .where(Listing.is_active == True)
         )
         
@@ -165,9 +187,29 @@ class ListingCRUD:
         base_query = base_query.offset(filters.offset).limit(filters.size)
         
         result = await db.execute(base_query.order_by(Listing.created_at.desc()))
-        listings = list(result.scalars().all())
+        listings = list(result.scalars().unique().all())
         
-        return listings, total
+        # Преобразуем в словари с primary_image_url
+        result_list = []
+        for listing in listings:
+            primary_image = None
+            if listing.images:
+                primary_img = next((img for img in listing.images if img.is_primary), None)
+                if not primary_img and listing.images:
+                    primary_img = listing.images[0]
+                if primary_img:
+                    primary_image = primary_img.image_url
+            
+            result_list.append({
+                "id": listing.id,
+                "title": listing.title,
+                "city": listing.city,
+                "capacity": listing.capacity,
+                "is_active": listing.is_active,
+                "primary_image_url": primary_image
+            })
+        
+        return result_list, total
     
     async def check_availability(
         self,

@@ -94,6 +94,7 @@ class ListingBrief(BaseModel):
     city: str
     capacity: int
     is_active: bool
+    primary_image_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
