@@ -105,7 +105,7 @@ class ListingService:
     ) -> Tuple[List[Listing], int]:
         """Поиск жилья с фильтрами"""
         if not filters.validate_dates():
-            raise AppValidationError("Дата выезда должна быть позже даты заезда")
+            raise ValidationError("Дата выезда должна быть позже даты заезда")
         
         return await listing_crud.search(db, filters)
     

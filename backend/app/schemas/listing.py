@@ -55,7 +55,7 @@ class ListingResponse(BaseModel):
     city: str
     address: str
     capacity: int
-    amenities: List[str]
+    amenities: Optional[List[str]] = []
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -65,6 +65,8 @@ class ListingResponse(BaseModel):
     @field_validator("amenities", mode="before")
     @classmethod
     def parse_amenities(cls, v):
+        if v is None:
+            return []
         if isinstance(v, str):
             import json
             try:
@@ -72,7 +74,7 @@ class ListingResponse(BaseModel):
             except (json.JSONDecodeError, TypeError):
                 # Fallback: split by comma
                 return [item.strip() for item in v.split(",") if item.strip()]
-        return v or []
+        return v if isinstance(v, list) else []
 
 
 class ListingBrief(BaseModel):

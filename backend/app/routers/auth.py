@@ -110,14 +110,8 @@ async def register(
     # Хеширование пароля
     password_hash = AuthService.get_password_hash(user_data.password)
     
-    try:
-        user = await user_crud.create(user_data, password_hash)
-        return user
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {str(e)}",
-        )
+    user = await user_crud.create(user_data, password_hash)
+    return user
 
 
 @router.post("/login", response_model=Token)
