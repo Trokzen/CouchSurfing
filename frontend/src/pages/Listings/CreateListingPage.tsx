@@ -70,9 +70,41 @@ export default function CreateListingPage() {
       });
     } catch (error: any) {
       console.error('Failed to create listing:', error);
+      
+      let errorMessage = 'Failed to create listing';
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        
+        // Handle validation errors (array of errors)
+        if (Array.isArray(data.detail)) {
+          errorMessage = data.detail
+            .map((err: any) => {
+              const field = err.loc?.[1] || 'Field';
+              const msg = err.msg || 'Invalid value';
+              return `${field}: ${msg}`;
+            })
+            .join('; ');
+        } 
+        // Handle single detail message
+        else if (typeof data.detail === 'string') {
+          errorMessage = data.detail;
+        }
+        // Handle other object formats
+        else if (typeof data.detail === 'object' && data.detail !== null) {
+          errorMessage = Object.entries(data.detail)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('; ');
+        }
+        // Fallback to entire message if available
+        else if (data.message) {
+          errorMessage = typeof data.message === 'string' ? data.message : JSON.stringify(data.message);
+        }
+      }
+      
       showNotification({
         title: 'Error',
-        message: error.response?.data?.detail || 'Failed to create listing',
+        message: errorMessage,
         color: 'red',
       });
     } finally {

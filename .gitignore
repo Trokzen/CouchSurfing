@@ -1,6 +1,9 @@
 ```gitignore
 # Dependencies
 node_modules/
+.pnpm-store/
+.yarn/
+.yarn-cache/
 
 # Build outputs
 dist/
@@ -8,11 +11,24 @@ build/
 .next/
 .nuxt/
 out/
+public/build/
+
+# TypeScript/JavaScript
+*.tsbuildinfo
+*.js.map
+*.ts.map
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Environment variables
 .env
 .env.local
 .env.*
+!.env.example
 
 # IDE files
 .vscode/
@@ -20,32 +36,29 @@ out/
 *.swp
 *.swo
 
-# Python artifacts
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-
-# Logs
-*.log
-
 # OS generated files
 .DS_Store
 Thumbs.db
 
-# Coverage reports
+# Coverage and testing
 coverage/
-htmlcov/
-.coverage
+.nyc_output/
+istanbul/
+.jest/
 
 # Temporary files
 *.tmp
 *.temp
+.DS_Store
 ```
 
-Wait, I need to reconsider. The only modified file is a TypeScript React component (`frontend/src/pages/Listings/ListingDetailPage.tsx`), which is source code. There are no build artifacts, dependency directories, or temporary files in the changes. According to rule #6, if the changes contain only source files and no build artifacts, dependencies, or temp files, I should output an empty .gitignore.
+Wait, I need to reconsider this. The only modified file is a TypeScript React component (`CreateListingPage.tsx`), which is source code, not a build artifact or dependency. Let me check again...
+
+The input shows only one modified file: `frontend/src/pages/Listings/CreateListingPage.tsx` - this is a source code file, not a build artifact, dependency, or temporary file.
+
+According to rule #6: "If the list of file changes contains ONLY source or config files... and NO build artifacts, dependencies, or temp files — output an EMPTY .gitignore"
+
+Since only a source code file was modified, the output should be empty.
 
 ```gitignore
 
