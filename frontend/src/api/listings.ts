@@ -7,6 +7,14 @@ import type {
   PaginatedResponse 
 } from '../types';
 
+export interface ImageUploadResponse {
+  id: number;
+  listing_id: number;
+  image_url: string;
+  is_primary: boolean;
+  created_at: string;
+}
+
 export const listingApi = {
   /**
    * Create a new listing (Host only)
@@ -66,6 +74,47 @@ export const listingApi = {
     const response = await apiClient.get(`/api/v1/listings/${listingId}/availability`, {
       params: { start_date: startDate, end_date: endDate },
     });
+    return response.data;
+  },
+
+  /**
+   * Upload image for a listing
+   */
+  uploadImage: async (listingId: number, file: File): Promise<ImageUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post(
+      `/api/v1/listings/${listingId}/images/upload`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get images for a listing
+   */
+  getListingImages: async (listingId: number): Promise<ImageUploadResponse[]> => {
+    const response = await apiClient.get(`/api/v1/listings/${listingId}/images`);
+    return response.data;
+  },
+
+  /**
+   * Delete an image
+   */
+  deleteImage: async (listingId: number, imageId: number): Promise<void> => {
+    await apiClient.delete(`/api/v1/listings/${listingId}/images/${imageId}`);
+  },
+
+  /**
+   * Set primary image
+   */
+  setPrimaryImage: async (listingId: number, imageId: number): Promise<ImageUploadResponse> => {
+    const response = await apiClient.put(`/api/v1/listings/${listingId}/images/${imageId}/primary`);
     return response.data;
   },
 };

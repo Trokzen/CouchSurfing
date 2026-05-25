@@ -14,12 +14,14 @@ import {
   Divider,
   SimpleGrid,
   Modal,
-  Textarea
+  Textarea,
+  Image,
+  Carousel
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar, IconUser, IconHome } from '@tabler/icons-react';
-import { listingApi } from '../../api/listings';
+import { listingApi, type ImageUploadResponse } from '../../api/listings';
 import { bookingApi } from '../../api/bookings';
 import type { Listing, BookingCreate } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,6 +31,7 @@ export default function ListingDetailPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [images, setImages] = useState<ImageUploadResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingModalOpened, setBookingModalOpened] = useState(false);
   const [checkIn, setCheckIn] = useState<Date | null>(null);
@@ -44,6 +47,14 @@ export default function ListingDetailPage() {
     try {
       const data = await listingApi.getListingById(parseInt(id));
       setListing(data);
+      
+      // Fetch images
+      try {
+        const imgs = await listingApi.getListingImages(parseInt(id));
+        setImages(imgs);
+      } catch (err) {
+        console.error('Failed to load images:', err);
+      }
     } catch (error) {
       console.error('Failed to fetch listing:', error);
       showNotification({
@@ -166,6 +177,44 @@ export default function ListingDetailPage() {
             <Badge color="gray" variant="dot">Inactive</Badge>
           )}
         </Group>
+
+        {/* Image Gallery */}
+        {images.length > 0 ? (
+          <Card withBorder shadow="sm" p="md">
+            {images.length === 1 ? (
+              <Image
+                src={images[0].image_url}
+                alt={listing.title}
+                height={400}
+                fit="cover"
+                radius="md"
+              />
+            ) : (
+              <Carousel
+                withIndicators
+                height={400}
+                slideSize="100%"
+                slideGap="md"
+              >
+                {images.map((img) => (
+                  <Carousel.Slide key={img.id}>
+                    <Image
+                      src={img.image_url}
+                      alt={`${listing.title} - photo`}
+                      height={400}
+                      fit="cover"
+                      radius="md"
+                    />
+                  </Carousel.Slide>
+                ))}
+              </Carousel>
+            )}
+          </Card>
+        ) : (
+          <Card withBorder shadow="sm" p="lg">
+            <Text c="dimmed" ta="center">No photos available</Text>
+          </Card>
+        )}
 
         {/* Owner Actions */}
         {isOwner && (

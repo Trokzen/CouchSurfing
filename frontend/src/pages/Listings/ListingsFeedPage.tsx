@@ -13,17 +13,19 @@ import {
   LoadingOverlay,
   Box,
   TextInput,
-  NumberInput
+  NumberInput,
+  Image
 } from '@mantine/core';
 import { IconSearch, IconCalendar } from '@tabler/icons-react';
 import { showNotification } from '@mantine/notifications';
-import { listingApi } from '../../api/listings';
+import { listingApi, type ImageUploadResponse } from '../../api/listings';
 import type { Listing, PaginatedResponse } from '../../types';
 import { DatePickerInput } from '@mantine/dates';
 
 export default function ListingsFeedPage() {
   const navigate = useNavigate();
   const [listings, setListings] = useState<Listing[]>([]);
+  const [listingImages, setListingImages] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchCity, setSearchCity] = useState('');
   const [checkIn, setCheckIn] = useState<Date | null>(null);
