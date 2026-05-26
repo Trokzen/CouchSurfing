@@ -96,16 +96,17 @@ def create_app() -> FastAPI:
 
     # Serve static files (uploaded images)
     import os
+    from pathlib import Path
     from fastapi.staticfiles import StaticFiles
     
-    # Ensure uploads directory exists - use absolute path to backend/app/uploads (where files are actually saved)
-    uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
-    os.makedirs(uploads_dir, exist_ok=True)
+    # Use absolute path relative to this file (backend/app/uploads)
+    uploads_dir = Path(__file__).parent / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
     
     # Mount /static/listings to serve files from uploads/listings directory
-    listings_dir = os.path.join(uploads_dir, "listings")
-    os.makedirs(listings_dir, exist_ok=True)
-    app.mount("/static/listings", StaticFiles(directory=listings_dir), name="static_listings")
+    listings_dir = uploads_dir / "listings"
+    listings_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/static/listings", StaticFiles(directory=str(listings_dir)), name="static_listings")
 
     # Health check endpoint
     @app.get("/health", tags=["Health"])
