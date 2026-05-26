@@ -102,7 +102,10 @@ def create_app() -> FastAPI:
     uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
     os.makedirs(uploads_dir, exist_ok=True)
     
-    app.mount("/static", StaticFiles(directory=uploads_dir), name="static")
+    # Mount /static/listings to serve files from uploads/listings directory
+    listings_dir = os.path.join(uploads_dir, "listings")
+    os.makedirs(listings_dir, exist_ok=True)
+    app.mount("/static/listings", StaticFiles(directory=listings_dir), name="static_listings")
 
     # Health check endpoint
     @app.get("/health", tags=["Health"])
