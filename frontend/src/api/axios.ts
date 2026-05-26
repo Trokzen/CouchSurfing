@@ -1,7 +1,12 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { showNotification } from '@mantine/notifications';
 
-const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:8000' : 'http://localhost:8000';
+
+export const getImageUrl = (imageUrl: string): string => {
+  if (imageUrl.startsWith('http')) return imageUrl;
+  return `${API_BASE_URL}${imageUrl}`;
+};
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

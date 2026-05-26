@@ -13,17 +13,20 @@ import {
   LoadingOverlay,
   Box,
   TextInput,
-  NumberInput
+  NumberInput,
+  Image
 } from '@mantine/core';
 import { IconSearch, IconCalendar } from '@tabler/icons-react';
 import { showNotification } from '@mantine/notifications';
 import { listingApi } from '../../api/listings';
+import { getImageUrl } from '../../api/axios';
 import type { Listing, PaginatedResponse } from '../../types';
 import { DatePickerInput } from '@mantine/dates';
 
 export default function ListingsFeedPage() {
   const navigate = useNavigate();
   const [listings, setListings] = useState<Listing[]>([]);
+  const [listingImages, setListingImages] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchCity, setSearchCity] = useState('');
   const [checkIn, setCheckIn] = useState<Date | null>(null);
@@ -44,7 +47,23 @@ export default function ListingsFeedPage() {
       if (minCapacity !== undefined) filters.min_capacity = minCapacity;
 
       const response: PaginatedResponse<Listing> = await listingApi.searchListings(filters as any);
-      setListings(response.items || []);
+      const items = response.items || [];
+      setListings(items);
+      
+      // Fetch images for each listing
+      const imagesMap: Record<number, string> = {};
+      for (const listing of items) {
+        try {
+          const imgs = await listingApi.getListingImages(listing.id);
+          const primaryImage = imgs.find(img => img.is_primary) || imgs[0];
+          if (primaryImage) {
+            imagesMap[listing.id] = primaryImage.image_url;
+          }
+        } catch (err) {
+          console.error(`Failed to load images for listing ${listing.id}:`, err);
+        }
+      }
+      setListingImages(imagesMap);
     } catch (error) {
       console.error('Failed to fetch listings:', error);
       showNotification({
@@ -122,6 +141,15 @@ export default function ListingsFeedPage() {
               onClick={() => navigate(`/listings/${listing.id}`)}
             >
               <Stack gap="sm">
+                {listingImages[listing.id] && (
+                  <Image
+                    src={getImageUrl(listingImages[listing.id])}
+                    alt={listing.title}
+                    height={180}
+                    fit="cover"
+                    radius="sm"
+                  />
+                )}
                 <Group justify="space-between">
                   <Title order={4}>{listing.title}</Title>
                   {!listing.is_active && (

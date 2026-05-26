@@ -20,7 +20,7 @@ import {
   NumberInput,
   Switch
 } from '@mantine/core';
-import { IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconEye, IconToggleLeft, IconToggleRight } from '@tabler/icons-react';
 import { showNotification } from '@mantine/notifications';
 import { listingApi } from '../../api/listings';
 import type { Listing, ListingUpdate } from '../../types';
@@ -94,13 +94,13 @@ export default function MyListingsPage() {
   };
 
   const handleDeleteListing = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this listing?')) return;
+    if (!window.confirm('Are you sure you want to permanently delete this listing? This action cannot be undone.')) return;
     
     try {
       await listingApi.deleteListing(id);
       showNotification({
         title: 'Listing deleted',
-        message: 'The listing has been successfully deleted',
+        message: 'The listing has been permanently deleted',
         color: 'green',
       });
       fetchListings();
@@ -109,6 +109,26 @@ export default function MyListingsPage() {
       showNotification({
         title: 'Error',
         message: 'Failed to delete listing',
+        color: 'red',
+      });
+    }
+  };
+
+  const handleToggleActive = async (listing: Listing) => {
+    try {
+      await listingApi.toggleActive(listing.id);
+      const newStatus = listing.is_active ? 'inactive' : 'active';
+      showNotification({
+        title: `Listing ${newStatus}`,
+        message: `The listing is now ${newStatus}`,
+        color: 'green',
+      });
+      fetchListings();
+    } catch (error) {
+      console.error('Failed to toggle listing status:', error);
+      showNotification({
+        title: 'Error',
+        message: 'Failed to update listing status',
         color: 'red',
       });
     }
@@ -229,24 +249,34 @@ export default function MyListingsPage() {
                   
                   <Group justify="flex-end">
                     <ActionIcon
-                      variant="default"
+                      variant="light"
+                      color="blue"
                       onClick={() => navigate(`/listings/${listing.id}`)}
                       title="View details"
                     >
-                      <IconEdit size={18} />
+                      <IconEye size={18} />
                     </ActionIcon>
                     <ActionIcon
-                      variant="default"
+                      variant="light"
+                      color="green"
                       onClick={() => handleEditListing(listing)}
                       title="Edit"
                     >
                       <IconEdit size={18} />
                     </ActionIcon>
                     <ActionIcon
+                      variant="light"
+                      color={listing.is_active ? 'orange' : 'teal'}
+                      onClick={() => handleToggleActive(listing)}
+                      title={listing.is_active ? 'Deactivate' : 'Activate'}
+                    >
+                      {listing.is_active ? <IconToggleRight size={24} /> : <IconToggleLeft size={24} />}
+                    </ActionIcon>
+                    <ActionIcon
                       color="red"
-                      variant="default"
+                      variant="light"
                       onClick={() => handleDeleteListing(listing.id)}
-                      title="Delete"
+                      title="Delete permanently"
                     >
                       <IconTrash size={18} />
                     </ActionIcon>

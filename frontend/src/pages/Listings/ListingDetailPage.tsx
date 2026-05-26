@@ -14,12 +14,16 @@ import {
   Divider,
   SimpleGrid,
   Modal,
-  Textarea
+  Textarea,
+  Image,
+  ActionIcon
 } from '@mantine/core';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { showNotification } from '@mantine/notifications';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar, IconUser, IconHome } from '@tabler/icons-react';
-import { listingApi } from '../../api/listings';
+import { listingApi, type ImageUploadResponse } from '../../api/listings';
+import { getImageUrl } from '../../api/axios';
 import { bookingApi } from '../../api/bookings';
 import type { Listing, BookingCreate } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,7 +33,9 @@ export default function ListingDetailPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [images, setImages] = useState<ImageUploadResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [bookingModalOpened, setBookingModalOpened] = useState(false);
   const [checkIn, setCheckIn] = useState<Date | null>(null);
   const [checkOut, setCheckOut] = useState<Date | null>(null);
@@ -44,6 +50,14 @@ export default function ListingDetailPage() {
     try {
       const data = await listingApi.getListingById(parseInt(id));
       setListing(data);
+      
+      // Fetch images
+      try {
+        const imgs = await listingApi.getListingImages(parseInt(id));
+        setImages(imgs);
+      } catch (err) {
+        console.error('Failed to load images:', err);
+      }
     } catch (error) {
       console.error('Failed to fetch listing:', error);
       showNotification({
@@ -135,6 +149,18 @@ export default function ListingDetailPage() {
     }
   };
 
+  const handleNextImage = () => {
+    if (images.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (images.length > 0) {
+      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    }
+  };
+
   if (loading) {
     return (
       <Container size="lg" my="md">
@@ -166,6 +192,60 @@ export default function ListingDetailPage() {
             <Badge color="gray" variant="dot">Inactive</Badge>
           )}
         </Group>
+
+        {/* Image Gallery */}
+        {images.length > 0 ? (
+          <Card withBorder shadow="sm" p="md">
+            <Box pos="relative">
+              <Image
+                src={getImageUrl(images[currentImageIndex].image_url)}
+                alt={listing.title}
+                height={400}
+                fit="cover"
+                radius="md"
+              />
+              {images.length > 1 && (
+                <>
+                  <ActionIcon
+                    variant="white"
+                    size="lg"
+                    style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
+                    onClick={handlePrevImage}
+                  >
+                    <IconChevronLeft size={24} />
+                  </ActionIcon>
+                  <ActionIcon
+                    variant="white"
+                    size="lg"
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}
+                    onClick={handleNextImage}
+                  >
+                    <IconChevronRight size={24} />
+                  </ActionIcon>
+                  <Group justify="center" mt="sm" gap="xs">
+                    {images.map((_, idx) => (
+                      <Box
+                        key={idx}
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: idx === currentImageIndex ? '#339af0' : '#ccc',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setCurrentImageIndex(idx)}
+                      />
+                    ))}
+                  </Group>
+                </>
+              )}
+            </Box>
+          </Card>
+        ) : (
+          <Card withBorder shadow="sm" p="lg">
+            <Text c="dimmed" ta="center">No photos available</Text>
+          </Card>
+        )}
 
         {/* Owner Actions */}
         {isOwner && (
