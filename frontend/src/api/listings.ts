@@ -106,8 +106,8 @@ export const listingApi = {
   /**
    * Delete an image
    */
-  deleteImage: async (listingId: number, imageId: number): Promise<void> => {
-    await apiClient.delete(`/api/v1/listings/${listingId}/images/${imageId}`);
+  deleteImage: async (imageId: number): Promise<void> => {
+    await apiClient.delete(`/api/v1/listings/images/${imageId}`);
   },
 
   /**

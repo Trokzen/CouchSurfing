@@ -70,7 +70,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ listingId, onImagesChange
     if (!confirm('Are you sure you want to delete this image?')) return;
 
     try {
-      await listingApi.deleteImage(listingId, imageId);
+      await listingApi.deleteImage(imageId);
       await loadImages();
       onImagesChange?.();
     } catch (err: any) {
