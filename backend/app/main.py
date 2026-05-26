@@ -98,7 +98,7 @@ def create_app() -> FastAPI:
     import os
     from fastapi.staticfiles import StaticFiles
     
-    # Ensure uploads directory exists - use absolute path to backend/uploads (where files are actually saved)
+    # Ensure uploads directory exists - use absolute path to backend/app/uploads (where files are actually saved)
     uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
     os.makedirs(uploads_dir, exist_ok=True)
     

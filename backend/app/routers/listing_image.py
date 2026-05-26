@@ -20,8 +20,8 @@ settings = get_settings()
 
 router = APIRouter(prefix="/listings", tags=["Listing Images"])
 
-# Директория для загрузки изображений - используем абсолютный путь относительно backend directory
-UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads" / "listings"
+# Директория для загрузки изображений - должна совпадать с той, что в main.py (backend/app/uploads/listings)
+UPLOAD_DIR = Path(__file__).parent.parent / "uploads" / "listings"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
