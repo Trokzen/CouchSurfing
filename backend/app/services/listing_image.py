@@ -37,6 +37,17 @@ class ListingImageService:
         
         return await listing_image_crud.create(db, image_data, listing_id)
     
+    async def create_image_for_listing(
+        self,
+        db: AsyncSession,
+        listing_id: int,
+        image_data: ListingImageCreate
+    ) -> ListingImage:
+        """
+        Создание записи изображения без проверки прав (для внутреннего использования при создании listing).
+        """
+        return await listing_image_crud.create(db, image_data, listing_id)
+    
     async def get_images(self, db: AsyncSession, listing_id: int) -> List[ListingImage]:
         """Получение всех фотографий жилья"""
         # Проверка существования жилья
