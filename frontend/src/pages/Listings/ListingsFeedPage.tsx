@@ -18,7 +18,7 @@ import {
 } from '@mantine/core';
 import { IconSearch, IconCalendar } from '@tabler/icons-react';
 import { showNotification } from '@mantine/notifications';
-import { listingApi, type ImageUploadResponse } from '../../api/listings';
+import { listingApi } from '../../api/listings';
 import type { Listing, PaginatedResponse } from '../../types';
 import { DatePickerInput } from '@mantine/dates';
 
@@ -46,7 +46,23 @@ export default function ListingsFeedPage() {
       if (minCapacity !== undefined) filters.min_capacity = minCapacity;
 
       const response: PaginatedResponse<Listing> = await listingApi.searchListings(filters as any);
-      setListings(response.items || []);
+      const items = response.items || [];
+      setListings(items);
+      
+      // Fetch images for each listing
+      const imagesMap: Record<number, string> = {};
+      for (const listing of items) {
+        try {
+          const imgs = await listingApi.getListingImages(listing.id);
+          const primaryImage = imgs.find(img => img.is_primary) || imgs[0];
+          if (primaryImage) {
+            imagesMap[listing.id] = primaryImage.image_url;
+          }
+        } catch (err) {
+          console.error(`Failed to load images for listing ${listing.id}:`, err);
+        }
+      }
+      setListingImages(imagesMap);
     } catch (error) {
       console.error('Failed to fetch listings:', error);
       showNotification({
@@ -124,6 +140,15 @@ export default function ListingsFeedPage() {
               onClick={() => navigate(`/listings/${listing.id}`)}
             >
               <Stack gap="sm">
+                {listingImages[listing.id] && (
+                  <Image
+                    src={listingImages[listing.id]}
+                    alt={listing.title}
+                    height={180}
+                    fit="cover"
+                    radius="sm"
+                  />
+                )}
                 <Group justify="space-between">
                   <Title order={4}>{listing.title}</Title>
                   {!listing.is_active && (
