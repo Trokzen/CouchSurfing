@@ -34,7 +34,7 @@ class ListingCRUD:
         )
         db.add(listing)
         await db.commit()
-        await db.refresh(listing)
+        await db.refresh(listing, attribute_names=["images"])
         return listing
     
     async def get_by_id(self, db: AsyncSession, listing_id: int) -> Optional[Listing]:
