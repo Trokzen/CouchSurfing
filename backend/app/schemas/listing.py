@@ -98,6 +98,11 @@ class ListingBrief(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "ListingBrief":
+        """Создание модели из словаря"""
+        return cls(**data)
+
 
 # ==================== Search Filters ====================
 

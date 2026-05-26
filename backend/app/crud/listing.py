@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 from datetime import date
 
 from app.models import Listing, Booking, BookingStatus
-from app.schemas.listing import ListingCreate, ListingUpdate, ListingSearchFilters
+from app.schemas.listing import ListingCreate, ListingUpdate, ListingSearchFilters, ListingBrief
 
 
 class ListingCRUD:
@@ -51,7 +51,7 @@ class ListingCRUD:
         db: AsyncSession, 
         host_id: int, 
         include_inactive: bool = False
-    ) -> List[dict]:
+    ) -> List[ListingBrief]:
         """Получение всех жилья конкретного хоста"""
         
         query = (
@@ -66,7 +66,7 @@ class ListingCRUD:
         result = await db.execute(query.order_by(Listing.created_at.desc()))
         listings = list(result.scalars().unique().all())
         
-        # Преобразуем в словари с primary_image_url
+        # Преобразуем в ListingBrief
         result_list = []
         for listing in listings:
             primary_image = None
@@ -77,14 +77,14 @@ class ListingCRUD:
                 if primary_img:
                     primary_image = primary_img.image_url
             
-            result_list.append({
-                "id": listing.id,
-                "title": listing.title,
-                "city": listing.city,
-                "capacity": listing.capacity,
-                "is_active": listing.is_active,
-                "primary_image_url": primary_image
-            })
+            result_list.append(ListingBrief(
+                id=listing.id,
+                title=listing.title,
+                city=listing.city,
+                capacity=listing.capacity,
+                is_active=listing.is_active,
+                primary_image_url=primary_image
+            ))
         
         return result_list
     
@@ -131,10 +131,10 @@ class ListingCRUD:
         self,
         db: AsyncSession,
         filters: ListingSearchFilters
-    ) -> Tuple[List[dict], int]:
+    ) -> Tuple[List[ListingBrief], int]:
         """
         Поиск жилья с фильтрацией по городу, датам и вместимости.
-        Возвращает список жилья (как словари) и общее количество результатов.
+        Возвращает список ListingBrief и общее количество результатов.
         
         Логика проверки дат:
         - Бронирование конфликтует, если интервалы пересекаются
@@ -197,7 +197,7 @@ class ListingCRUD:
         result = await db.execute(base_query.order_by(Listing.created_at.desc()))
         listings = list(result.scalars().unique().all())
         
-        # Преобразуем в словари с primary_image_url
+        # Преобразуем в ListingBrief
         result_list = []
         for listing in listings:
             primary_image = None
@@ -208,14 +208,14 @@ class ListingCRUD:
                 if primary_img:
                     primary_image = primary_img.image_url
             
-            result_list.append({
-                "id": listing.id,
-                "title": listing.title,
-                "city": listing.city,
-                "capacity": listing.capacity,
-                "is_active": listing.is_active,
-                "primary_image_url": primary_image
-            })
+            result_list.append(ListingBrief(
+                id=listing.id,
+                title=listing.title,
+                city=listing.city,
+                capacity=listing.capacity,
+                is_active=listing.is_active,
+                primary_image_url=primary_image
+            ))
         
         return result_list, total
     

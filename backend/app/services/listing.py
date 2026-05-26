@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 from datetime import date
 
 from app.models import Listing, UserRole
-from app.schemas.listing import ListingCreate, ListingUpdate, ListingSearchFilters
+from app.schemas.listing import ListingCreate, ListingUpdate, ListingSearchFilters, ListingBrief
 from app.crud.listing import listing_crud
 from app.core.exceptions import (
     NotFoundException as NotFoundError,
@@ -102,7 +102,7 @@ class ListingService:
         self,
         db: AsyncSession,
         filters: ListingSearchFilters
-    ) -> Tuple[List[Listing], int]:
+    ) -> Tuple[List[ListingBrief], int]:
         """Поиск жилья с фильтрами"""
         if not filters.validate_dates():
             raise ValidationError("Дата выезда должна быть позже даты заезда")
