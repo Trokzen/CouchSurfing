@@ -58,7 +58,7 @@ async def get_host_listings(
     return listings
 
 
-@router.get("/search", response_model=PaginatedResponse[ListingResponse])
+@router.get("/search", response_model=PaginatedResponse[ListingBrief])
 async def search_listings(
     city: Optional[str] = Query(None, min_length=2, description="Город"),
     check_in: Optional[date] = Query(None, description="Дата заезда (YYYY-MM-DD)"),
