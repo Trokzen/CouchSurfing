@@ -22,7 +22,7 @@ from app.core.database import init_db, close_db
 from app.core.exceptions import AppException
 
 # Import routers
-from app.routers import auth_router, listing_router, booking_router
+from app.routers import auth_router, listing_router, booking_router, listing_image_router
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -80,7 +80,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_methods=["*"],
         allow_headers=["*"],
     )
 
@@ -89,9 +89,24 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api/v1", tags=["Authentication"])
     app.include_router(listing_router, prefix="/api/v1", tags=["Listings"])
     app.include_router(booking_router, prefix="/api/v1", tags=["Bookings"])
+    app.include_router(listing_image_router, prefix="/api/v1", tags=["Listing Images"])
     # Future routers:
     # app.include_router(reviews.router, prefix="/api/v1/reviews", tags=["Reviews"])
     # app.include_router(messages.router, prefix="/api/v1/messages", tags=["Messages"])
+
+    # Serve static files (uploaded images)
+    import os
+    from pathlib import Path
+    from fastapi.staticfiles import StaticFiles
+    
+    # Use absolute path relative to this file (backend/app/uploads)
+    uploads_dir = Path(__file__).parent / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Mount /static/listings to serve files from uploads/listings directory
+    listings_dir = uploads_dir / "listings"
+    listings_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/static/listings", StaticFiles(directory=str(listings_dir)), name="static_listings")
 
     # Health check endpoint
     @app.get("/health", tags=["Health"])

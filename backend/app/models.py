@@ -162,6 +162,9 @@ class Listing(Base):
     bookings: Mapped[List["Booking"]] = relationship(
         "Booking", back_populates="listing", cascade="all, delete-orphan"
     )
+    images: Mapped[List["ListingImage"]] = relationship(
+        "ListingImage", back_populates="listing", cascade="all, delete-orphan"
+    )
 
     # Indexes for efficient searching
     __table_args__ = (
@@ -171,6 +174,34 @@ class Listing(Base):
 
     def __repr__(self) -> str:
         return f"<Listing(id={self.id}, title={self.title}, city={self.city})>"
+
+
+class ListingImage(Base):
+    """
+    ListingImage model representing photos of a listing.
+    """
+
+    __tablename__ = "listing_images"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    listing_id: Mapped[int] = mapped_column(
+        ForeignKey("listings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    image_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    # Relationships
+    listing: Mapped["Listing"] = relationship("Listing", back_populates="images")
+
+    __table_args__ = (
+        Index("ix_listing_images_listing", "listing_id", "is_primary"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<ListingImage(id={self.id}, listing_id={self.listing_id}, primary={self.is_primary})>"
 
 
 class Booking(Base):
