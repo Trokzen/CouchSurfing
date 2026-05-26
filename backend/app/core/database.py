@@ -79,7 +79,7 @@ async def init_db() -> None:
     """Initialize database tables (for development only)."""
     async with engine.begin() as conn:
         # Import all models to ensure they are registered with Base
-        from app.models import User, Listing, Booking, Review, Message
+        from app.models import User, Listing, Booking, Review, Message, ListingImage
         await conn.run_sync(Base.metadata.create_all)
 
 

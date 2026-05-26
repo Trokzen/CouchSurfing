@@ -18,6 +18,7 @@ import { useForm } from '@mantine/form';
 import { showNotification } from '@mantine/notifications';
 import { listingApi } from '../../api/listings';
 import type { Listing, ListingUpdate } from '../../types';
+import ImageUploader from '../../components/ImageUploader';
 
 export default function EditListingPage() {
   const navigate = useNavigate();
@@ -114,8 +115,6 @@ export default function EditListingPage() {
         message: 'The listing has been successfully updated',
         color: 'green',
       });
-      
-      navigate('/my-listings');
     } catch (error: any) {
       console.error('Failed to update listing:', error);
       showNotification({
@@ -205,12 +204,21 @@ export default function EditListingPage() {
               >
                 Cancel
               </Button>
-              <Button loading={submitting} type="submit">
+              <Button 
+                loading={submitting} 
+                type="submit"
+                onClick={() => setTimeout(() => navigate('/my-listings'), 500)}
+              >
                 Update Listing
               </Button>
             </Group>
           </Stack>
         </form>
+
+        <Box mt="xl">
+          <Title order={3} mb="md">Manage Photos</Title>
+          <ImageUploader listingId={listing.id} />
+        </Box>
       </Card>
     </Container>
   );

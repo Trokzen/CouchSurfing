@@ -82,6 +82,19 @@ CREATE INDEX IF NOT EXISTS ix_listings_is_active ON listings(is_active);
 CREATE INDEX IF NOT EXISTS ix_listings_city_active ON listings(city, is_active);
 CREATE INDEX IF NOT EXISTS ix_listings_host_active ON listings(host_id, is_active);
 
+-- Таблица изображений размещений (listing_images)
+CREATE TABLE IF NOT EXISTS listing_images (
+    id SERIAL PRIMARY KEY,
+    listing_id INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+    image_url VARCHAR(500) NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Индексы для таблицы listing_images
+CREATE INDEX IF NOT EXISTS ix_listing_images_listing_id ON listing_images(listing_id);
+CREATE INDEX IF NOT EXISTS ix_listing_images_is_primary ON listing_images(listing_id) WHERE is_primary = TRUE;
+
 -- Таблица бронирований (bookings)
 CREATE TABLE IF NOT EXISTS bookings (
     id SERIAL PRIMARY KEY,

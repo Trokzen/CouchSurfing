@@ -16,10 +16,12 @@ import { useForm } from '@mantine/form';
 import { showNotification } from '@mantine/notifications';
 import { listingApi } from '../../api/listings';
 import type { ListingCreate } from '../../types';
+import ImageUploader from '../../components/ImageUploader';
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [createdListingId, setCreatedListingId] = useState<number | null>(null);
 
   const form = useForm({
     initialValues: {
@@ -58,20 +60,51 @@ export default function CreateListingPage() {
         is_active: values.is_active,
       };
 
-      await listingApi.createListing(listingData);
+      const createdListing = await listingApi.createListing(listingData);
+      setCreatedListingId(createdListing.id);
       
       showNotification({
         title: 'Listing created',
-        message: 'Your listing has been successfully created',
+        message: 'Your listing has been successfully created. You can now add photos.',
         color: 'green',
       });
-      
-      navigate('/my-listings');
     } catch (error: any) {
       console.error('Failed to create listing:', error);
+      
+      let errorMessage = 'Failed to create listing';
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        
+        // Handle validation errors (array of errors)
+        if (Array.isArray(data.detail)) {
+          errorMessage = data.detail
+            .map((err: any) => {
+              const field = err.loc?.[1] || 'Field';
+              const msg = err.msg || 'Invalid value';
+              return `${field}: ${msg}`;
+            })
+            .join('; ');
+        } 
+        // Handle single detail message
+        else if (typeof data.detail === 'string') {
+          errorMessage = data.detail;
+        }
+        // Handle other object formats
+        else if (typeof data.detail === 'object' && data.detail !== null) {
+          errorMessage = Object.entries(data.detail)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('; ');
+        }
+        // Fallback to entire message if available
+        else if (data.message) {
+          errorMessage = typeof data.message === 'string' ? data.message : JSON.stringify(data.message);
+        }
+      }
+      
       showNotification({
         title: 'Error',
-        message: error.response?.data?.detail || 'Failed to create listing',
+        message: errorMessage,
         color: 'red',
       });
     } finally {
@@ -79,76 +112,98 @@ export default function CreateListingPage() {
     }
   };
 
+  const handleImagesComplete = () => {
+    navigate('/my-listings');
+  };
+
   return (
     <Container size="lg" my="md">
       <Title order={2} mb="md">Create New Listing</Title>
 
       <Card withBorder shadow="sm" p="lg">
-        <form onSubmit={form.onSubmit(handleSubmit)}>
+        {!createdListingId ? (
+          <form onSubmit={form.onSubmit(handleSubmit)}>
+            <Stack gap="md">
+              <TextInput
+                label="Title"
+                placeholder="e.g., Cozy Studio in City Center"
+                {...form.getInputProps('title')}
+                required
+              />
+
+              <Textarea
+                label="Description"
+                placeholder="Describe your place in detail. What makes it special? What can guests expect?"
+                {...form.getInputProps('description')}
+                minRows={4}
+                required
+              />
+
+              <TextInput
+                label="City"
+                placeholder="e.g., Moscow"
+                {...form.getInputProps('city')}
+                required
+              />
+
+              <TextInput
+                label="Address"
+                placeholder="Full address (street, building, apartment)"
+                {...form.getInputProps('address')}
+                required
+              />
+
+              <NumberInput
+                label="Capacity (number of guests)"
+                min={1}
+                max={20}
+                {...form.getInputProps('capacity')}
+                required
+              />
+
+              <TextInput
+                label="Amenities (comma-separated)"
+                placeholder="wifi, kitchen, washing_machine, air_conditioning, heating"
+                {...form.getInputProps('amenities')}
+                description="List the amenities available at your place"
+              />
+
+              <Switch
+                label="Active (visible to guests immediately)"
+                {...form.getInputProps('is_active', { type: 'checkbox' })}
+              />
+
+              <Group justify="flex-end" mt="md">
+                <Button
+                  variant="default"
+                  onClick={() => navigate('/my-listings')}
+                  type="button"
+                >
+                  Cancel
+                </Button>
+                <Button loading={submitting} type="submit">
+                  Create Listing
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        ) : (
           <Stack gap="md">
-            <TextInput
-              label="Title"
-              placeholder="e.g., Cozy Studio in City Center"
-              {...form.getInputProps('title')}
-              required
+            <Title order={3}>Add Photos to Your Listing</Title>
+            <ImageUploader 
+              listingId={createdListingId} 
+              onImagesChange={handleImagesComplete}
             />
-
-            <Textarea
-              label="Description"
-              placeholder="Describe your place in detail. What makes it special? What can guests expect?"
-              {...form.getInputProps('description')}
-              minRows={4}
-              required
-            />
-
-            <TextInput
-              label="City"
-              placeholder="e.g., Moscow"
-              {...form.getInputProps('city')}
-              required
-            />
-
-            <TextInput
-              label="Address"
-              placeholder="Full address (street, building, apartment)"
-              {...form.getInputProps('address')}
-              required
-            />
-
-            <NumberInput
-              label="Capacity (number of guests)"
-              min={1}
-              max={20}
-              {...form.getInputProps('capacity')}
-              required
-            />
-
-            <TextInput
-              label="Amenities (comma-separated)"
-              placeholder="wifi, kitchen, washing_machine, air_conditioning, heating"
-              {...form.getInputProps('amenities')}
-              description="List the amenities available at your place"
-            />
-
-            <Switch
-              label="Active (visible to guests immediately)"
-              {...form.getInputProps('is_active', { type: 'checkbox' })}
-            />
-
             <Group justify="flex-end" mt="md">
               <Button
                 variant="default"
                 onClick={() => navigate('/my-listings')}
-                type="button"
               >
-                Cancel
-              </Button>
-              <Button loading={submitting} type="submit">
-                Create Listing
+                Skip and Finish
               </Button>
             </Group>
           </Stack>
-        </form>
+        )}
       </Card>
     </Container>
   );

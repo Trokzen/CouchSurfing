@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 from datetime import date
 
 from app.models import Listing, Booking, BookingStatus
-from app.schemas.listing import ListingCreate, ListingUpdate, ListingSearchFilters
+from app.schemas.listing import ListingCreate, ListingUpdate, ListingSearchFilters, ListingBrief
 
 
 class ListingCRUD:
@@ -34,13 +34,15 @@ class ListingCRUD:
         )
         db.add(listing)
         await db.commit()
-        await db.refresh(listing)
+        await db.refresh(listing, attribute_names=["images"])
         return listing
     
     async def get_by_id(self, db: AsyncSession, listing_id: int) -> Optional[Listing]:
         """Получение жилья по ID"""
         result = await db.execute(
-            select(Listing).where(Listing.id == listing_id)
+            select(Listing)
+            .options(selectinload(Listing.images))
+            .where(Listing.id == listing_id)
         )
         return result.scalar_one_or_none()
     
@@ -49,15 +51,42 @@ class ListingCRUD:
         db: AsyncSession, 
         host_id: int, 
         include_inactive: bool = False
-    ) -> List[Listing]:
+    ) -> List[ListingBrief]:
         """Получение всех жилья конкретного хоста"""
-        query = select(Listing).where(Listing.host_id == host_id)
+        
+        query = (
+            select(Listing)
+            .options(selectinload(Listing.images))
+            .where(Listing.host_id == host_id)
+        )
         
         if not include_inactive:
             query = query.where(Listing.is_active == True)
         
         result = await db.execute(query.order_by(Listing.created_at.desc()))
-        return list(result.scalars().all())
+        listings = list(result.scalars().unique().all())
+        
+        # Преобразуем в ListingBrief
+        result_list = []
+        for listing in listings:
+            primary_image = None
+            if listing.images:
+                primary_img = next((img for img in listing.images if img.is_primary), None)
+                if not primary_img and listing.images:
+                    primary_img = listing.images[0]
+                if primary_img:
+                    primary_image = primary_img.image_url
+            
+            result_list.append(ListingBrief(
+                id=listing.id,
+                title=listing.title,
+                city=listing.city,
+                capacity=listing.capacity,
+                is_active=listing.is_active,
+                primary_image_url=primary_image
+            ))
+        
+        return result_list
     
     async def update(
         self, 
@@ -88,21 +117,37 @@ class ListingCRUD:
         await db.commit()
         return True
     
+    async def hard_delete(self, db: AsyncSession, listing_id: int) -> bool:
+        """Полное удаление жилья из БД"""
+        listing = await self.get_by_id(db, listing_id)
+        if not listing:
+            return False
+        
+        await db.delete(listing)
+        await db.commit()
+        return True
+    
     async def search(
         self,
         db: AsyncSession,
         filters: ListingSearchFilters
-    ) -> Tuple[List[Listing], int]:
+    ) -> Tuple[List[ListingBrief], int]:
         """
         Поиск жилья с фильтрацией по городу, датам и вместимости.
-        Возвращает список жилья и общее количество результатов.
+        Возвращает список ListingBrief и общее количество результатов.
         
         Логика проверки дат:
         - Бронирование конфликтует, если интервалы пересекаются
         - [start1, end1] пересекает [start2, end2] если start1 < end2 AND end1 > start2
         """
+        from sqlalchemy.orm import selectinload
+        
         # Базовый запрос
-        base_query = select(Listing).where(Listing.is_active == True)
+        base_query = (
+            select(Listing)
+            .options(selectinload(Listing.images))
+            .where(Listing.is_active == True)
+        )
         
         # Фильтр по городу (частичное совпадение, case-insensitive)
         if filters.city:
@@ -150,9 +195,29 @@ class ListingCRUD:
         base_query = base_query.offset(filters.offset).limit(filters.size)
         
         result = await db.execute(base_query.order_by(Listing.created_at.desc()))
-        listings = list(result.scalars().all())
+        listings = list(result.scalars().unique().all())
         
-        return listings, total
+        # Преобразуем в ListingBrief
+        result_list = []
+        for listing in listings:
+            primary_image = None
+            if listing.images:
+                primary_img = next((img for img in listing.images if img.is_primary), None)
+                if not primary_img and listing.images:
+                    primary_img = listing.images[0]
+                if primary_img:
+                    primary_image = primary_img.image_url
+            
+            result_list.append(ListingBrief(
+                id=listing.id,
+                title=listing.title,
+                city=listing.city,
+                capacity=listing.capacity,
+                is_active=listing.is_active,
+                primary_image_url=primary_image
+            ))
+        
+        return result_list, total
     
     async def check_availability(
         self,
@@ -184,6 +249,17 @@ class ListingCRUD:
         )
         
         return conflict.scalar_one_or_none() is None
+
+    async def toggle_active(self, db: AsyncSession, listing_id: int) -> Optional[Listing]:
+        """Переключение статуса активности жилья"""
+        listing = await self.get_by_id(db, listing_id)
+        if not listing:
+            return None
+        
+        listing.is_active = not listing.is_active
+        await db.commit()
+        await db.refresh(listing)
+        return listing
 
 
 # Экземпляр для использования в роутерах

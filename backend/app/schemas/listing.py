@@ -33,6 +33,17 @@ class ListingCreate(BaseModel):
     )
 
 
+class ListingCreateWithImages(BaseModel):
+    """Схема создания жилья с загрузкой изображений (FormData)"""
+    title: str = Field(..., min_length=3, max_length=200)
+    description: str = Field(..., min_length=10, max_length=5000)
+    city: str = Field(..., min_length=2, max_length=100)
+    address: str = Field(..., min_length=5, max_length=300)
+    capacity: int = Field(..., ge=1, le=20, description="Вместимость в людях")
+    amenities: Optional[str] = Field(default="[]", description="JSON массив удобств")
+    is_active: bool = True
+
+
 class ListingUpdate(BaseModel):
     """Схема обновления жилья"""
     title: Optional[str] = Field(None, min_length=3, max_length=200)
@@ -45,6 +56,15 @@ class ListingUpdate(BaseModel):
 
 
 # ==================== Listing Response ====================
+
+class ListingImageBrief(BaseModel):
+    """Краткая информация о фотографии для списков"""
+    id: int
+    image_url: str
+    is_primary: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ListingResponse(BaseModel):
     """Схема ответа с данными жилья"""
@@ -59,6 +79,7 @@ class ListingResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    images: Optional[List[ListingImageBrief]] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -84,8 +105,14 @@ class ListingBrief(BaseModel):
     city: str
     capacity: int
     is_active: bool
+    primary_image_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ListingBrief":
+        """Создание модели из словаря"""
+        return cls(**data)
 
 
 # ==================== Search Filters ====================
