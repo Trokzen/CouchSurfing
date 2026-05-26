@@ -19,6 +19,7 @@ import {
 import { IconSearch, IconCalendar } from '@tabler/icons-react';
 import { showNotification } from '@mantine/notifications';
 import { listingApi } from '../../api/listings';
+import { getImageUrl } from '../../api/axios';
 import type { Listing, PaginatedResponse } from '../../types';
 import { DatePickerInput } from '@mantine/dates';
 
@@ -142,7 +143,7 @@ export default function ListingsFeedPage() {
               <Stack gap="sm">
                 {listingImages[listing.id] && (
                   <Image
-                    src={listingImages[listing.id]}
+                    src={getImageUrl(listingImages[listing.id])}
                     alt={listing.title}
                     height={180}
                     fit="cover"

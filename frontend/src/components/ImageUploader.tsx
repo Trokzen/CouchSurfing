@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Button, Group, Stack, Text, Image, Badge, Box, Loader } from '@mantine/core';
 import { IconUpload, IconTrash, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { listingApi, type ImageUploadResponse } from '../api/listings';
+import { getImageUrl } from '../api/axios';
 
 interface ImageUploaderProps {
   listingId: number;
@@ -139,7 +140,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ listingId, onImagesChange
               }}
             >
               <Image
-                src={image.image_url}
+                src={getImageUrl(image.image_url)}
                 alt="Listing"
                 height={150}
                 fit="cover"
@@ -200,7 +201,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ listingId, onImagesChange
         <Box mt="md">
           <Text fw={500} mb="xs">Preview (Primary Image):</Text>
           <Image
-            src={primaryImage.image_url}
+            src={getImageUrl(primaryImage.image_url)}
             alt="Primary Preview"
             height={250}
             fit="cover"

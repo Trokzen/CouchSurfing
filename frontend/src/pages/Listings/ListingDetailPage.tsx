@@ -23,6 +23,7 @@ import { showNotification } from '@mantine/notifications';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar, IconUser, IconHome } from '@tabler/icons-react';
 import { listingApi, type ImageUploadResponse } from '../../api/listings';
+import { getImageUrl } from '../../api/axios';
 import { bookingApi } from '../../api/bookings';
 import type { Listing, BookingCreate } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -197,7 +198,7 @@ export default function ListingDetailPage() {
           <Card withBorder shadow="sm" p="md">
             <Box pos="relative">
               <Image
-                src={images[currentImageIndex].image_url}
+                src={getImageUrl(images[currentImageIndex].image_url)}
                 alt={listing.title}
                 height={400}
                 fit="cover"
